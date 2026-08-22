@@ -1,0 +1,436 @@
+---
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~5, 캠페인·제스처 튜토리얼 반영)
+alwaysApply: false
+---
+
+# Classic Tetris (Expo + React Native + TypeScript)
+
+## 목표
+
+NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + TypeScript로 구현한다.
+
+- 8×16 플레이 필드, 7종 테트로미노(I/O/T/S/Z/J/L)
+- 테트로미노별 **고유 색상**
+- **측면 HUD** (점수, 레벨, 스테이지, 라인, NEXT)
+- **스와이프 전용** 컨트롤 (탭 회전 · ←→ 이동 · ↓ 하드드롭) + 하단 **제스처 튜토리얼**
+- **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
+- 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
+
+---
+
+## 기술 스택
+
+| 영역 | 선택 |
+|------|------|
+| 프레임워크 | Expo SDK **57** (`~57.0.15`) — **prebuild / bare workflow** (`android/` 존재) |
+| 언어 | TypeScript (strict) |
+| UI | React Native `View`, `Pressable`, `StyleSheet`, `PanResponder` |
+| Safe area | `react-native-safe-area-context` |
+| 상태 | React `useReducer` + game engine ref (Phase 2~; Zustand — Phase 4 이후 검토) |
+| 테스트 | Jest (엔진 단위 테스트 — Phase 4) |
+
+### 빌드 & 실행
+
+```bash
+npm start                  # Metro
+npm run android:device     # 네이티브 Android (연결 기기)
+npm run ios
+npm run web
+```
+
+**아이콘 / 네이티브 리소스 변경 시** (`assets/icon.png` 등):
+
+```bash
+npx expo prebuild --platform android --clean
+npm run android:device
+```
+
+> `expo run:android`만으로는 `app.json` 아이콘이 반영되지 않음. `android/` mipmap을 prebuild로 재생성해야 함.
+
+---
+
+## 프로젝트 구조 (현재)
+
+```
+classic-tetris/
+├── App.tsx                    # SafeAreaProvider + GameScreen
+├── index.ts                   # registerRootComponent
+├── app.json                   # Expo config (icon, adaptiveIcon, dark UI)
+├── assets/
+│   ├── icon.png               # 1024×1024 메인 아이콘
+│   ├── android-icon-foreground.png
+│   ├── android-icon-monochrome.png
+│   ├── favicon.png
+│   └── splash-icon.png
+├── android/                   # prebuild 생성 (git tracked)
+├── src/
+│   ├── game/
+│   │   ├── types.ts           # GameState, GameAction, EngineAction, BoardCell
+│   │   ├── tetrominoes.ts     # 7종 shape + color helper
+│   │   ├── board.ts           # collision, merge, clearLines, buildDisplayBoard
+│   │   ├── srs.ts             # Guideline SRS wall kick tables
+│   │   ├── bag.ts             # 7-bag randomizer
+│   │   ├── speed.ts           # NES gravity table, DAS/ARR constants
+│   │   ├── lifecycle.ts       # spawn, lock, score, createInitialState
+│   │   ├── actions.ts         # LEFT/RIGHT/ROTATE/HOLD/DAS/gravity step
+│   │   ├── engine.ts          # reduce, tick
+│   │   ├── scoring.ts         # computeLineClearScore
+│   │   ├── campaign.ts        # stage line targets, level/stage progression, gravity tier
+│   │   └── profile.ts         # PlayerProfile, placeholderProfile (Phase 5 셸)
+│   ├── feedback/
+│   │   └── haptics.ts         # expo-haptics wrappers
+│   ├── components/
+│   │   ├── GameScreen.tsx     # pause + overlay + keyboard wiring
+│   │   ├── GameOverlay.tsx    # Pause / Game Over overlay
+│   │   ├── BoardView.tsx      # locked + active + ghost layer render
+│   │   ├── Cell.tsx           # 단일 셀 (색상, ghost, checker 배경)
+│   │   ├── HudPanel.tsx       # SCORE/LVL/STG/LINE + NEXT
+│   │   ├── MiniBoard.tsx      # NEXT 미니 그리드
+│   │   ├── TouchControls.tsx  # SwipeZone only (PanResponder)
+│   │   ├── GestureTutorial.tsx # 하단 제스처 안내 (Move / Rotate / Drop 애니메이션)
+│   │   ├── PlayerStatusBar.tsx # 아바타 + 승진 진행률 (placeholder)
+│   │   └── DPadController.tsx # (레거시) 미사용
+│   ├── hooks/
+│   │   ├── useSwipeActions.ts # PanResponder 스와이프 + DAS drag
+│   │   ├── useGameLoop.ts     # rAF tick → gravity + DAS
+│   │   ├── useGameFeedback.ts # haptics on action / line clear
+│   │   └── useKeyboardControls.ts # web keyboard (Phase 4)
+│   └── theme/
+│       └── colors.ts          # theme + tetrominoColors
+├── __tests__/                 # Jest unit tests (board, bag, score, campaign)
+├── eas.json                   # EAS Build profiles
+└── package.json
+```
+
+---
+
+## 테트로미노 색상 (Guideline / SRS 표준)
+
+각 피스는 **고유 hex 색** + 약간 어두운 테두리(`borderColor`)로 입체감.
+
+| 피스 | 이름 | fill | border (optional) |
+|------|------|------|-------------------|
+| I | Cyan | `#00F0F0` | `#00A0A0` |
+| O | Yellow | `#F0F000` | `#A0A000` |
+| T | Purple | `#A000F0` | `#6000A0` |
+| S | Green | `#00F000` | `#00A000` |
+| Z | Red | `#F00000` | `#A00000` |
+| J | Blue | `#0000F0` | `#0000A0` |
+| L | Orange | `#F0A000` | `#A06000` |
+
+`src/theme/colors.ts` → `tetrominoColors`, `src/game/tetrominoes.ts` → `tetrominoShapes`. `BoardView`/`Cell`은 color prop만 받는다.
+
+### UI 테마 (`theme`)
+
+| 토큰 | 값 | 용도 |
+|------|-----|------|
+| `background` | `#0f0f1a` | 앱 배경, adaptive icon 배경 |
+| `panel` | `#1a1a2e` | HUD / StatusBar / 튜토리얼 카드 패널 |
+| `panelBorder` | `#2d2d44` | 패널·보드 외곽 테두리 |
+| `accent` | `#f0f000` | 타이틀, 점수, 강조 |
+| `avatarBlue` | `#4a6cf0` | 프로파일 아바타 (PlayerStatusBar) |
+| `boardBackground` | `#0d1636` | 보드 컨테이너 배경 (아바타 블루 톤) |
+| `boardCheckerLight` | `#101a3f` | 빈 셀 체커 — 밝은 칸 |
+| `boardCheckerDark` | `#0a122e` | 빈 셀 체커 — 어두운 칸 |
+| `cellBorder` | `#192448` | 셀 테두리 (블록·고스트) |
+| `ghost` | `rgba(255,255,255,0.15)` | 고스트 피스 |
+
+빈 셀은 `(x + y) % 2`로 `boardCheckerLight` / `boardCheckerDark` 교차 적용 (`BoardView` → `Cell checkerLight`). 블록·고스트 셀은 체커를 덮는다.
+
+---
+
+## HUD 설계
+
+### 레이아웃 (세로 모바일 — **현재 구현**)
+
+```
+┌─────────────────────────────────────┐
+│              TETRIS            ❚❚   │  ← titleRow + pause
+├─────────────────────────────────────┤
+│  [Avatar] Player  Bronze Lv.1       │  ← PlayerStatusBar (full width)
+│           ████████░░  35% → Silver  │
+├─────────────────────────────────────┤
+│      │ SCORE │                       │
+│      │  LVL  │                       │
+│ MAIN │  STG  │  NEXT                 │  ← 보드(좌) + HudPanel(우, 72px)
+│BOARD │ LINE  │                       │
+│swipe │ n/n   │                       │
+├──────┴───────┴───────────────────────┤
+│ [Move ←→] [Rotate tap] [Drop ↓]     │  ← GestureTutorial (보드 너비 정렬)
+└─────────────────────────────────────┘
+```
+
+- HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
+- `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음** — 음수 마진 제거)
+- `centerColumn` = `gameCluster`(보드+HUD) + `GestureTutorial` (세로 gap 12)
+- `playAreaSpacer` × 2로 `centerColumn` **좌우 중앙 정렬**
+- 셀 크기: `playSection.onLayout` 높이에서 튜토리얼·gap·하단 lift·보드 border를 제외한 뒤 `computeCellSize`
+
+### HudPanel 구현 방식
+
+1. **데이터**: `GameState`에서 `score`, `level`, `stage`, `lines` + `getStageLineTarget(stage)` → `lineTarget`
+2. **컴포넌트**: `HudPanel.tsx`
+   - `StatBlock`: label + monospace 숫자 (`fontVariant: ['tabular-nums']`)
+   - `MiniBoard`: 4×4 고정 그리드, NEXT 피스 표시
+3. **스타일**: `theme.panel` / `theme.accent`
+4. **갱신**: `React.memo(HudPanel)` + engine state 구독
+
+### NEXT
+
+- NEXT: 7-bag RNG (`bag.ts`), `GameState.bag` 큐
+- 미니 보드는 `Cell` 재사용, `cellSize={12}`
+
+> **HOLD** — Phase 3에서 구현됐으나 현재 코드베이스에서 제거됨. 재도입 시 `GameState` + `HudPanel` + 키보드 `C` 매핑 복원.
+
+---
+
+## 컨트롤러 — **스와이프 전용 + 제스처 튜토리얼** (현재)
+
+### UX 목표
+
+- 보드에서 **스와이프·탭**으로 모든 조작
+- 하단 **GestureTutorial** — Move / Rotate / Fast drop 애니메이션 카드 3개
+- ROTATE/DROP 물리 버튼 제거 → 화면 공간 절약
+
+### 레이아웃
+
+```
+┌─────────────────────────────────────┐
+│         MAIN BOARD (swipe zone)      │
+│   tap 회전  ·  ← → 이동  ·  ↓ 하드드롭 │
+├─────────────────────────────────────┤
+│  Move ←→  │  Rotate (tap)  │  Drop ↓ │
+└─────────────────────────────────────┘
+```
+
+### 입력 매핑
+
+| 입력 | 동작 |
+|------|------|
+| 보드 탭 (slop ≤ 12px) | ROTATE (SRS wall kick) |
+| ← / → 스와이프 (quick) | LEFT / RIGHT (1칸, DAS 미시작) |
+| ← / → 드래그 유지 | DAS 220ms → ARR 95ms 반복 (`EngineAction DAS`) |
+| ↓ 스와이프 | HARD_DROP (fast drop) |
+
+기본 중력은 NES 테이블 × 2 (`GRAVITY_SCALE`) — 스테이지 4+ 에서 `getGravityTier`로 가속.
+
+### 구현 (완료)
+
+- `SwipeZone` + `useSwipeActions` — tap / quick swipe + drag DAS
+- `GestureTutorial` — 3-card animated hints (`GESTURE_TUTORIAL_HEIGHT = 68`)
+- `GameScreen`: `useReducer(reduce)` + `useGameLoop` + ghost wiring
+
+### 레이아웃 주의 (튜토리얼 vs 보드 높이)
+
+- `playSection`: `flex: 1`, `minHeight: 0`, `paddingBottom: BOTTOM_LIFT (24)` — **음수 margin 사용 금지**
+- `cellSize` 높이 예산: `playSectionHeight - GESTURE_TUTORIAL_HEIGHT - TUTORIAL_GAP - BOTTOM_LIFT - BOARD_BORDER`
+- `centerColumn`에 튜토리얼을 두어 보드 높이 계산과 분리 (프로파일 바 overlap 방지)
+- `boardColumnWidth = boardOuterWidth` (컨트롤 버튼 최소 너비 제약 없음)
+
+### (레거시) D-pad
+
+`DPadController.tsx`는 초기 스켈레톤으로 남아 있으나 **GameScreen에서 미사용**. 필요 시 삭제하거나 Phase 4 dev 빌드용으로 유지.
+
+---
+
+## 게임 엔진 ↔ UI 경계 (목표)
+
+```
+┌─────────────┐     dispatch      ┌──────────────┐
+│  SwipeZone  │ ────────────────► │              │
+│ (tap/swipe) │                   │  useReducer  │
+└─────────────┘                   │  + engine    │
+┌─────────────┐     subscribe     │              │
+│ BoardView   │ ◄──────────────── │              │
+│ HudPanel    │     GameState     └──────────────┘
+│ GameOverlay │                          ▲
+└─────────────┘                          │ tick (gravity)
+                                  useGameLoop (rAF)
+```
+
+- **engine.ts**: `reduce(state, action)`, `tick(state, dt)` — gravity + DAS
+- **useGameLoop.ts**: rAF tick, `gameOver` 시 loop 정지
+- **BoardView**: locked board + active piece + ghost layer (`Cell ghost` prop)
+- UI 컴포넌트는 **절대** 보드 배열을 직접 mutate하지 않음
+
+---
+
+## Phase 1 — 프로젝트 셋업 & 정적 보드 ✅ (완료)
+
+**목표**: Expo 앱 실행, 보드 + HUD 레이아웃 + 스와이프/버튼 UI (입력은 console.log)
+
+### 작업
+
+- [x] Expo + TypeScript 프로젝트 생성 (`App.tsx` + `index.ts` 진입점)
+- [x] `src/` 디렉터리 및 `theme/colors.ts`, `game/tetrominoes.ts`, `game/types.ts`
+- [x] `BoardView` + `Cell`: 8×16 그리드, 셀 border
+- [x] Phase 1 데모: 하단 row에 7색 피스 preview (`buildPreviewBoard`)
+- [x] `HudPanel`: SCORE / LVL / LINE placeholder + NEXT/HOLD `MiniBoard`
+- [x] `TouchControls`: `SwipeZone`, `useSwipeActions`
+- [x] `GestureTutorial`: 하단 제스처 안내 카드 (ActionButtons 대체)
+- [x] `GameScreen`: SafeAreaView + 동적 `computeCellSize` + flex spacer 중앙 정렬
+- [x] `PlayerStatusBar` + `profile.ts` placeholder (Phase 5 UI 셸 선행)
+- [x] Android 네이티브 빌드 (`expo run:android --device`)
+- [x] 앱 아이콘 (`assets/icon.png`, adaptive icon, favicon) + `app.json` dark theme
+- [ ] ~~`DPadController`~~ → TouchControls로 대체 (파일만 잔존)
+
+### 완료 기준
+
+- [x] Android 기기에서 앱 실행
+- [x] 스와이프/버튼 시 개발자 로그에 action 출력
+- [x] 7색 팔레트가 `colors.ts` / `tetrominoes.ts`에 정의됨
+- [x] HUD + 보드 + 제스처 튜토리얼 레이아웃 표시
+
+---
+
+## Phase 2 — 코어 게임플레이 ✅ (완료)
+
+**목표**: 피스 스폰, 이동, 회전(단순), 착지, 라인 클리어, game over
+
+### 작업
+
+- [x] `board.ts`: collision, merge, clearLines
+- [x] `engine.ts` + `lifecycle.ts`: spawn, gravity tick, score (single/double/triple/tetris)
+- [x] `actions.ts`: LEFT, RIGHT, ROTATE (basic), SOFT_DROP, HARD_DROP
+- [x] `useGameLoop.ts` + reducer 연동
+- [x] `BoardView`에 active piece + locked cells 렌더
+- [x] `HudPanel` 실제 score/level/lines 바인딩
+- [x] `MiniBoard` NEXT 피스 표시 (실제 next piece)
+- [x] `GameScreen.handleAction` → engine dispatch
+- [x] Game over + RESTART 오버레이
+
+### 완료 기준
+
+- [x] 한 판 처음부터 game over까지 플레이 가능
+- [x] 스와이프 + 버튼으로 조작 가능
+
+---
+
+## Phase 3 — 클래식 규칙 고도화 ✅ (완료)
+
+**목표**: SRS rotation, 7-bag, HOLD, DAS/ARR, 레벨별 속도, ghost piece
+
+### 작업
+
+- [x] SRS wall kick tables (`srs.ts` — I / JLSTZ, O pass-through)
+- [x] 7-bag randomizer (`bag.ts`, `GameState.bag`)
+- [ ] ~~HOLD~~ — 제거됨 (재도입 optional)
+- [x] DAS 220ms / ARR 95ms — drag 시 `EngineAction DAS`, tick에서 처리
+- [x] NES-style gravity table (`speed.ts`, 60fps frames → ms)
+- [x] Ghost piece (`getGhostPiece` + `BoardView` ghost layer)
+
+### 완료 기준
+
+- [x] moderne classic Tetris feel에 근접
+
+---
+
+## Phase 4 — 폴리시 ✅ (완료)
+
+**목표**: UX·접근성·배포
+
+### 작업
+
+- [x] Pause / Resume / Restart overlay (`GameOverlay`, title bar pause button)
+- [x] `expo-haptics` (`src/feedback/haptics.ts`, `useGameFeedback`)
+- [ ] ~~사운드 (`expo-av`)~~ — optional, 미구현 (haptics 우선)
+- [x] 키보드 입력 web/dev (`useKeyboardControls`)
+- [x] Jest: board, line clear, 7-bag, score, campaign (`npm test` — 17 tests)
+- [x] EAS Build 설정 (`eas.json`)
+- [x] 앱 아이콘 (다크 테트리스 그리드, `#0f0f1a` 배경)
+- [x] Splash screen (`app.json` → `assets/splash-icon.png`, `#0f0f1a`)
+
+### 완료 기준
+
+- [x] Pause/Resume/Restart 동작
+- [x] Web 키보드 조작 (←→↓↑/Space/X/Z, P/Esc, R)
+- [x] `npm test` 17 tests pass
+
+---
+
+## Phase 4b — 캠페인 모드 ✅ (완료)
+
+**목표**: 스테이지 기반 진행, 라인 목표 클리어, 레벨/스테이지 오버레이
+
+### 작업
+
+- [x] `campaign.ts`: `STAGE_LINE_TARGETS`, `getStageLineTarget`, `getNextStage`, `getGravityTier`
+- [x] `GameState`: `level`, `stage`, `lines`, `stageCleared`, `campaignComplete`
+- [x] `lifecycle.ts`: 스테이지 클리어 판정, `NEXT_STAGE` 진행, 캠페인 완료
+- [x] `HudPanel`: STG stat, LINE `n/target` 표시
+- [x] `GameOverlay`: `stageClear`, `campaignComplete` variants
+- [x] `speed.ts`: 스테이지별 중력 tier (`getGravityTier`)
+- [x] Jest: `__tests__/campaign.test.ts`
+
+### 완료 기준
+
+- [x] 스테이지 라인 목표 달성 → Stage Clear → Next Stage
+- [x] Level 5 Stage 5 클리어 → Campaign Complete
+- [x] 라인 클리어 중·stageCleared·campaignComplete 시 입력 차단
+
+---
+
+## Phase 4c — 보드·레이아웃 폴리시 ✅ (완료)
+
+**목표**: 보드 시각 개선, 프로파일 바와 레이아웃 겹침 해결
+
+### 작업
+
+- [x] 보드 체커 배경 (`boardCheckerLight` / `boardCheckerDark`, 아바타 블루 톤)
+- [x] `theme.avatarBlue` + `profile.ts` 토큰 공유
+- [x] `GestureTutorial`을 `boardColumn` 밖 `centerColumn`으로 분리
+- [x] `cellSize`에 `GESTURE_TUTORIAL_HEIGHT`, `TUTORIAL_GAP`, `BOTTOM_LIFT`, `BOARD_BORDER` 반영
+- [x] `PlayerStatusBar` / `playSection` 음수 margin 제거 → 프로파일 바 overlap fix
+
+### 완료 기준
+
+- [x] 빈 셀에 은은한 체커 패턴 표시
+- [x] 보드가 프로파일 바를 가리지 않음
+
+---
+
+## Phase 5 (선택) — 확장 (다음)
+
+- High score AsyncStorage
+- 테마 (라이트/다크 보드) — 현재 다크 + 아바타 블루 보드
+- HOLD 재도입 (HudPanel + engine)
+- 2-player local (split screen)
+- **아바타 & 승진제** — `PlayerStatusBar` + `PlayerProfile` 연동
+  - [x] UI 셸 (`PlayerStatusBar`, `placeholderProfile`, `theme.avatarBlue`)
+  - [ ] 실제 승진 로직 / AsyncStorage
+
+---
+
+## 구현 시 주의사항
+
+1. **셀 크기**: `computeCellSize(boardWidth, boardHeight)` — 8×16; `onLayout`은 `playSection`에만 (PlayerStatusBar 높이 제외). `boardHeight = playSectionHeight - GESTURE_TUTORIAL_HEIGHT(68) - TUTORIAL_GAP(12) - BOTTOM_LIFT(24) - BOARD_BORDER(4)`
+2. **레이아웃**: `playBlock` → `PlayerStatusBar` + `playSection(flex:1)` → `playArea` → `centerColumn(gameCluster + GestureTutorial)`; `playAreaSpacer` × 2로 수평 중앙
+3. **프로파일 바 간격**: `PlayerStatusBar` `marginTop: 12`, `marginBottom: 8` — **음수 margin 금지**
+4. **성능**: 보드는 `Cell` 128개 (8×16); `key={`${x},${y}`}`; `React.memo(Cell)` custom compare
+5. **회전**: Guideline SRS (`srs.ts`); 8-wide 보드, spawn x=2
+6. **타입**: `type BoardCell = null | TetrominoType`; locked board는 color resolve at render
+7. **중력**: NES frame table × `GRAVITY_SCALE` 2 → ms (`speed.ts`); 캠페인 `getGravityTier(stage)`로 스테이지 4+ 가속
+8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action
+9. **네이티브 리소스**: `app.json` 변경 → `npx expo prebuild --clean` → `expo run:android`
+10. **Expo docs**: SDK 57 — https://docs.expo.dev/versions/v57.0.0/
+
+---
+
+## Phase 5 시작 명령 (에이전트용)
+
+```bash
+cd /Users/mikelim/Github/classic-tetris
+npm test
+npm run android:device
+# Splash/icon 변경 시:
+# npx expo prebuild --platform android --clean
+```
+
+---
+
+## 참고
+
+- [SRS (Super Rotation System)](https://tetris.wiki/Super_Rotation_System)
+- [Guideline colors](https://tetris.wiki/Guideline)
+- [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/)
+- Expo Router 미사용 — `App.tsx` 단일 화면

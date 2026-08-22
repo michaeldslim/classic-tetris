@@ -1,41 +1,93 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Dependency directories
 node_modules/
+jspm_packages/
 
 # Expo
 .expo/
+eas.json
+
+ios/
+ios/build/
+ios/Pods/
+
+# npm lockfile (using npm now)
+# ignore yarn lock since we're using npm
+yarn.lock
+
+# Android 빌드 결과물만 무시
+android/.gradle/
+android/build/
+android/app/release/
+android/app/bin/
+android/app/build/
+android/captures/
+android/local.properties
+
+# Distribution directories
 dist/
-web-build/
-expo-env.d.ts
+build/
+.idea/
+.gradle
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Environment files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Metro
-.metro-health-check*
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
-*.pem
 
-# local env files
-.env*.local
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
 
-# typescript
-*.tsbuildinfo
+# Coverage reports
+coverage/
+.coverage
+htmlcov/
 
-# generated native folders
-/ios
-/android
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+# Allow Gradle wrapper JAR
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradle/wrapper/gradle-wrapper.lock
+
+# Logs
+logs
+*.log
