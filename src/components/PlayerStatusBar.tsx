@@ -1,47 +1,94 @@
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { PlayerProfile } from '../game/profile';
+import type { AvatarId } from '../constants/avatars';
 import { theme } from '../theme/colors';
+import { PlayerAvatar } from './PlayerAvatar';
 
-type PlayerStatusBarProps = {
-  profile: PlayerProfile;
+export type CareerBarInfo = {
+  rankLabel: string;
+  progress: number;
+  progressHint: string;
 };
 
-function PlayerStatusBarComponent({ profile }: PlayerStatusBarProps) {
-  const { promotion } = profile;
-  const progressPercent = Math.round(promotion.progress * 100);
+export type NormalBarStats = {
+  score: number;
+  level: number;
+  stage: number;
+  lines: number;
+};
+
+type PlayerStatusBarProps = {
+  avatarId: AvatarId;
+  careerMode: boolean;
+  career?: CareerBarInfo;
+  stats?: NormalBarStats;
+  highScore?: number;
+  isPersonalBest?: boolean;
+  scoreLabel: string;
+  highScoreLabel: string;
+  newBestLabel: string;
+  levelLabel: string;
+  stageLabel: string;
+  lineLabel: string;
+};
+
+function PlayerStatusBarComponent({
+  avatarId,
+  careerMode,
+  career,
+  stats,
+  highScore = 0,
+  isPersonalBest = false,
+  scoreLabel,
+  highScoreLabel,
+  newBestLabel,
+  levelLabel,
+  stageLabel,
+  lineLabel,
+}: PlayerStatusBarProps) {
+  const progressPercent = career
+    ? Math.round(Math.min(1, Math.max(0, career.progress)) * 100)
+    : 0;
 
   return (
     <View style={styles.container}>
-      <View
-        style={[styles.avatar, { backgroundColor: profile.avatarColor }]}
-      >
-        <Text style={styles.avatarLabel}>{profile.avatarLabel}</Text>
-      </View>
+      <PlayerAvatar avatarId={avatarId} size="md" />
 
-      <View style={styles.info}>
-        <View style={styles.rankRow}>
-          <Text style={styles.displayName}>{profile.displayName}</Text>
-          <Text style={styles.tierBadge}>
-            {promotion.tierName} Lv.{promotion.tierLevel}
+      {careerMode && career ? (
+        <View style={styles.info}>
+          <View style={styles.rankRow}>
+            <Text style={styles.rankLabel}>{career.rankLabel}</Text>
+          </View>
+
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${progressPercent}%` },
+              ]}
+            />
+          </View>
+
+          <Text style={styles.progressHint}>{career.progressHint}</Text>
+        </View>
+      ) : stats ? (
+        <View style={styles.info}>
+          <View style={styles.scoreHeaderRow}>
+            <Text style={styles.scoreValue}>{stats.score.toLocaleString()}</Text>
+            {isPersonalBest ? (
+              <Text style={styles.newBestBadge}>{newBestLabel}</Text>
+            ) : null}
+          </View>
+          <Text style={styles.scoreCaption}>{scoreLabel}</Text>
+          <Text style={styles.highScoreHint}>
+            {highScoreLabel}: {highScore.toLocaleString()}
+          </Text>
+          <Text style={styles.statSecondary}>
+            {levelLabel} {stats.level} · {stageLabel} {stats.stage} ·{' '}
+            {lineLabel} {stats.lines}
           </Text>
         </View>
-
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progressPercent}%` },
-            ]}
-          />
-        </View>
-
-        <Text style={styles.progressHint}>
-          {promotion.nextTierName
-            ? `${progressPercent}% → ${promotion.nextTierName}`
-            : `${progressPercent}%`}
-        </Text>
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -63,23 +110,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.panelBorder,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  avatarLabel: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
   info: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   rankRow: {
     flexDirection: 'row',
@@ -87,14 +120,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  displayName: {
-    color: theme.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  tierBadge: {
+  rankLabel: {
     color: theme.accent,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
@@ -113,5 +141,47 @@ const styles = StyleSheet.create({
     color: theme.textMuted,
     fontSize: 10,
     fontWeight: '600',
+  },
+  scoreHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  scoreValue: {
+    color: theme.accent,
+    fontSize: 24,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.5,
+  },
+  scoreCaption: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  newBestBadge: {
+    color: theme.background,
+    backgroundColor: theme.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  highScoreHint: {
+    color: theme.text,
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  statSecondary: {
+    color: theme.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 });

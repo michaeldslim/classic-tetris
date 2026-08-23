@@ -108,6 +108,13 @@ export function findFullLineRows(board: BoardCell[][]): number[] {
   return rows;
 }
 
+export function countFilledCells(board: BoardCell[][]): number {
+  return board.reduce(
+    (total, row) => total + row.filter((cell) => cell !== null).length,
+    0,
+  );
+}
+
 export function buildDisplayBoard(
   board: BoardCell[][],
   active: {

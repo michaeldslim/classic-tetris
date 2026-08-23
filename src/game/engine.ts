@@ -8,6 +8,7 @@ import {
   advanceToNextStage,
   completeLineClear,
   createInitialState,
+  createStageRestartState,
   getGravityInterval,
 } from './lifecycle';
 import { LINE_CLEAR_DURATION_MS } from './speed';
@@ -17,6 +18,7 @@ export {
   advanceToNextStage,
   completeLineClear,
   createInitialState,
+  createStageRestartState,
   getGravityInterval,
   lockActivePiece,
   spawnNextPiece,
@@ -72,6 +74,10 @@ export function reduce(state: GameState, action: EngineAction): GameState {
 
   if (typeof action === 'object' && action.type === 'RESTART') {
     return createInitialState();
+  }
+
+  if (typeof action === 'object' && action.type === 'RETRY_STAGE') {
+    return createStageRestartState(state);
   }
 
   if (typeof action === 'object' && action.type === 'NEXT_STAGE') {

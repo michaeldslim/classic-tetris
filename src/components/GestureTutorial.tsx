@@ -2,6 +2,7 @@ import { memo, useMemo, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { getRotatedShape } from '../game/board';
 import type { TetrominoType } from '../theme/colors';
+import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
 import { Cell } from './Cell';
 
@@ -95,16 +96,18 @@ function TutorialCard({ hint, children }: TutorialCardProps) {
 }
 
 function GestureTutorialComponent({ width }: GestureTutorialProps) {
+  const { translate } = useSettings();
+
   return (
     <View style={[styles.container, { width }]}>
       <View style={styles.cardsRow}>
-        <TutorialCard hint="Move left & right">
+        <TutorialCard hint={translate('tutorial.move')}>
           <MoveDemo />
         </TutorialCard>
-        <TutorialCard hint="Rotate piece">
+        <TutorialCard hint={translate('tutorial.rotate')}>
           <RotateDemo />
         </TutorialCard>
-        <TutorialCard hint="Fast drop">
+        <TutorialCard hint={translate('tutorial.drop')}>
           <DropDemo />
         </TutorialCard>
       </View>

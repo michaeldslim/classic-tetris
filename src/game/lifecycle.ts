@@ -169,4 +169,28 @@ export function createInitialState(): GameState {
   });
 }
 
+export function createStageRestartState(state: GameState): GameState {
+  const bag = createShuffledBag();
+  const { piece: first, bag: bagAfterFirst } = drawFromBag(bag);
+
+  return spawnNextPiece({
+    board: createEmptyBoard(),
+    active: null,
+    next: first,
+    bag: bagAfterFirst,
+    score: state.score,
+    level: state.level,
+    stage: state.stage,
+    lines: 0,
+    gameOver: false,
+    stageCleared: false,
+    campaignComplete: false,
+    fallAccumulator: 0,
+    dasDirection: 0,
+    dasAccumulator: 0,
+    dasCharged: false,
+    lineClear: null,
+  });
+}
+
 export { getGravityInterval } from './speed';

@@ -46,6 +46,7 @@ export type EngineAction =
   | GameAction
   | { type: 'TICK'; dt: number }
   | { type: 'RESTART' }
+  | { type: 'RETRY_STAGE' }
   | { type: 'NEXT_STAGE' }
   | { type: 'DAS'; direction: -1 | 0 | 1 };
 

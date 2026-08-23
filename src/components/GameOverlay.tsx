@@ -1,12 +1,16 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
 
 type GameOverlayProps = {
   variant: 'pause' | 'gameOver' | 'stageClear' | 'campaignComplete';
   score?: number;
+  highScore?: number;
+  isNewHighScore?: boolean;
   level?: number;
   stage?: number;
+  primaryDisabled?: boolean;
   onPrimary: () => void;
   onSecondary?: () => void;
 };
@@ -14,27 +18,31 @@ type GameOverlayProps = {
 function GameOverlayComponent({
   variant,
   score,
+  highScore,
+  isNewHighScore = false,
   level,
   stage,
+  primaryDisabled = false,
   onPrimary,
   onSecondary,
 }: GameOverlayProps) {
+  const { translate } = useSettings();
   const isPause = variant === 'pause';
   const isStageClear = variant === 'stageClear';
   const isCampaignComplete = variant === 'campaignComplete';
 
-  let title = 'GAME OVER';
-  let primaryLabel = 'RESTART';
+  let title = translate('overlay.gameOver');
+  let primaryLabel = translate('overlay.restart');
 
   if (isPause) {
-    title = 'PAUSED';
-    primaryLabel = 'RESUME';
+    title = translate('overlay.paused');
+    primaryLabel = translate('overlay.resume');
   } else if (isStageClear) {
-    title = 'STAGE CLEAR';
-    primaryLabel = 'NEXT';
+    title = translate('overlay.stageClear');
+    primaryLabel = translate('overlay.next');
   } else if (isCampaignComplete) {
-    title = 'YOU WIN';
-    primaryLabel = 'PLAY AGAIN';
+    title = translate('overlay.youWin');
+    primaryLabel = translate('overlay.playAgain');
   }
 
   return (
@@ -42,23 +50,39 @@ function GameOverlayComponent({
       <Text style={styles.title}>{title}</Text>
       {isStageClear && level !== undefined && stage !== undefined ? (
         <Text style={styles.subtitle}>
-          Level {level} · Stage {stage}
+          {translate('overlay.stageInfo', {
+            level: String(level),
+            stage: String(stage),
+          })}
         </Text>
       ) : null}
       {!isPause && !isStageClear && score !== undefined ? (
-        <Text style={styles.score}>Score: {score}</Text>
+        <Text style={styles.score}>
+          {translate('overlay.score', { score: String(score) })}
+        </Text>
+      ) : null}
+      {!isPause && !isStageClear && highScore !== undefined ? (
+        <Text style={[styles.highScore, isNewHighScore && styles.newHighScore]}>
+          {isNewHighScore
+            ? translate('overlay.newHighScore')
+            : translate('overlay.highScore', { score: String(highScore) })}
+        </Text>
       ) : null}
       {isPause ? (
-        <Text style={styles.hint}>Tap RESUME or press P / Esc</Text>
+        <Text style={styles.hint}>{translate('overlay.pauseHint')}</Text>
       ) : null}
 
       <Pressable
-        style={styles.primaryButton}
+        style={[styles.primaryButton, primaryDisabled && styles.primaryButtonDisabled]}
         onPress={onPrimary}
+        disabled={primaryDisabled}
         accessibilityRole="button"
         accessibilityLabel={primaryLabel}
+        accessibilityState={{ disabled: primaryDisabled }}
       >
-        <Text style={styles.primaryLabel}>{primaryLabel}</Text>
+        <Text style={[styles.primaryLabel, primaryDisabled && styles.primaryLabelDisabled]}>
+          {primaryLabel}
+        </Text>
       </Pressable>
 
       {isPause && onSecondary ? (
@@ -66,9 +90,9 @@ function GameOverlayComponent({
           style={styles.secondaryButton}
           onPress={onSecondary}
           accessibilityRole="button"
-          accessibilityLabel="Restart game"
+          accessibilityLabel={translate('overlay.restart')}
         >
-          <Text style={styles.secondaryLabel}>RESTART</Text>
+          <Text style={styles.secondaryLabel}>{translate('overlay.restart')}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -102,6 +126,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  highScore: {
+    color: theme.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  newHighScore: {
+    color: theme.accent,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
   hint: {
     color: theme.textMuted,
     fontSize: 11,
@@ -119,11 +154,17 @@ const styles = StyleSheet.create({
     minWidth: 120,
     alignItems: 'center',
   },
+  primaryButtonDisabled: {
+    opacity: 0.4,
+  },
   primaryLabel: {
     color: theme.accent,
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  primaryLabelDisabled: {
+    color: theme.textMuted,
   },
   secondaryButton: {
     backgroundColor: 'transparent',

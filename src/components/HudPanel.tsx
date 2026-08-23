@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { GameStats } from '../game/types';
 import type { TetrominoType } from '../theme/colors';
+import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
 import { MiniBoard } from './MiniBoard';
 
@@ -33,20 +34,22 @@ function HudPanelComponent({
   stats,
   nextPiece,
 }: HudPanelProps) {
+  const { translate } = useSettings();
+
   return (
     <View style={styles.container}>
       <View style={styles.statsColumn}>
-        <StatBlock label="SCORE" value={stats.score} />
-        <StatBlock label="LVL" value={stats.level} />
-        <StatBlock label="STG" value={stats.stage} />
+        <StatBlock label={translate('hud.score')} value={stats.score} />
+        <StatBlock label={translate('hud.level')} value={stats.level} />
+        <StatBlock label={translate('hud.stage')} value={stats.stage} />
         <StatBlock
-          label="LINE"
+          label={translate('hud.line')}
           value={`${stats.lines}/${stats.lineTarget}`}
         />
       </View>
 
       <View style={styles.miniBoards}>
-        <MiniBoard label="NEXT" piece={nextPiece} cellSize={12} />
+        <MiniBoard label={translate('hud.next')} piece={nextPiece} cellSize={12} />
       </View>
     </View>
   );

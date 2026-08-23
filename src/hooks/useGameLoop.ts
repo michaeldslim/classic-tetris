@@ -12,7 +12,7 @@ export function useGameLoop(
   pausedRef.current = paused;
 
   useEffect(() => {
-    if (state.gameOver || paused || state.campaignComplete) {
+    if (state.gameOver || paused || state.campaignComplete || state.stageCleared) {
       return;
     }
 
@@ -23,7 +23,12 @@ export function useGameLoop(
       const dt = now - lastTime;
       lastTime = now;
 
-      if (!stateRef.current.gameOver && !pausedRef.current && !stateRef.current.campaignComplete) {
+      if (
+        !stateRef.current.gameOver &&
+        !pausedRef.current &&
+        !stateRef.current.campaignComplete &&
+        !stateRef.current.stageCleared
+      ) {
         dispatch({ type: 'TICK', dt });
       }
 
@@ -35,5 +40,5 @@ export function useGameLoop(
     return () => {
       cancelAnimationFrame(frameId);
     };
-  }, [state.gameOver, state.campaignComplete, paused, dispatch]);
+  }, [state.gameOver, state.campaignComplete, state.stageCleared, paused, dispatch]);
 }
