@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~5, 캠페인·제스처 튜토리얼 반영)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~5, 캠페인·커리어·설정·i18n·오디오 반영)
 alwaysApply: false
 ---
 
@@ -26,8 +26,11 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 언어 | TypeScript (strict) |
 | UI | React Native `View`, `Pressable`, `StyleSheet`, `PanResponder` |
 | Safe area | `react-native-safe-area-context` |
-| 상태 | React `useReducer` + game engine ref (Phase 2~; Zustand — Phase 4 이후 검토) |
-| 테스트 | Jest (엔진 단위 테스트 — Phase 4) |
+| 상태 | React `useReducer` (게임) + Context providers (설정·커리어·점수·오디오) |
+| 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어) |
+| i18n | `expo-localization` + `i18n-js` — **en / ko** |
+| 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
+| 테스트 | Jest — **28 tests** (board, bag, scoring, campaign, career, score, engine) |
 
 ### 빌드 & 실행
 
@@ -53,11 +56,13 @@ npm run android:device
 
 ```
 classic-tetris/
-├── App.tsx                    # SafeAreaProvider + GameScreen
+├── App.tsx                    # Provider stack + overlay nav (home / settings / career / game)
 ├── index.ts                   # registerRootComponent
 ├── app.json                   # Expo config (icon, adaptiveIcon, dark UI)
 ├── assets/
 │   ├── icon.png               # 1024×1024 메인 아이콘
+│   ├── avatars/               # 10 player avatar PNGs + ATTRIBUTION.md
+│   ├── sounds/                # BGM1/BGM2 + dropped / line_matched / game_over SFX
 │   ├── android-icon-foreground.png
 │   ├── android-icon-monochrome.png
 │   ├── favicon.png
@@ -75,29 +80,64 @@ classic-tetris/
 │   │   ├── actions.ts         # LEFT/RIGHT/ROTATE/HOLD/DAS/gravity step
 │   │   ├── engine.ts          # reduce, tick
 │   │   ├── scoring.ts         # computeLineClearScore
-│   │   ├── campaign.ts        # stage line targets, level/stage progression, gravity tier
-│   │   └── profile.ts         # PlayerProfile, placeholderProfile (Phase 5 셸)
+│   │   └── campaign.ts        # stage line targets, level/stage progression, gravity tier
+│   ├── career/
+│   │   ├── types.ts           # CareerRank, CareerState, PromotionResult
+│   │   ├── careerRules.ts     # 8 ranks, promotion win counts, min campaign level
+│   │   ├── careerProgress.ts  # applyStageResult (promote / hold on game over)
+│   │   ├── careerLabels.ts    # i18n rank labels + progress copy
+│   │   ├── careerStorage.ts   # AsyncStorage persist
+│   │   └── CareerProvider.tsx # React context
+│   ├── score/
+│   │   ├── types.ts           # ScoreRecord, ScoreAchievementId
+│   │   ├── achievements.ts    # 1k–50k score milestones
+│   │   ├── scoreProgress.ts   # high score + unlock logic
+│   │   ├── scoreStorage.ts    # AsyncStorage persist
+│   │   └── ScoreProvider.tsx  # React context
+│   ├── settings/
+│   │   ├── types.ts           # AppSettings (language, BGM, volumes, avatar, career toggle)
+│   │   ├── storage.ts         # AsyncStorage persist
+│   │   └── SettingsContext.tsx # React context + translate()
+│   ├── i18n/
+│   │   ├── index.ts           # i18n-js setup, detectDeviceLanguage, t()
+│   │   └── locales/
+│   │       ├── en.ts          # English strings
+│   │       └── ko.ts          # Korean strings
+│   ├── audio/
+│   │   ├── sounds.ts          # asset map (BGM1/BGM2, SFX ids)
+│   │   └── GameAudioContext.tsx # BGM loop + SFX, pause on overlay
+│   ├── constants/
+│   │   └── avatars.ts         # AvatarId registry + DEFAULT_PLAYER_AVATAR_ID
 │   ├── feedback/
 │   │   └── haptics.ts         # expo-haptics wrappers
 │   ├── components/
-│   │   ├── GameScreen.tsx     # pause + overlay + keyboard wiring
-│   │   ├── GameOverlay.tsx    # Pause / Game Over overlay
+│   │   ├── StartScreen.tsx    # 홈 — 아바타, 타이틀, 커리어/하이스코어 배지, Start
+│   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 커리어 모드 토글
+│   │   ├── CareerScreen.tsx   # 직급 트리, 승진 조건, 리셋
+│   │   ├── GameScreen.tsx     # 게임 + 커리어/점수 연동, achievement toast
+│   │   ├── GameOverlay.tsx    # Pause / Game Over / Stage Clear / Campaign Complete
+│   │   ├── PromotionOverlay.tsx # 승진 축하 오버레이
+│   │   ├── AchievementToast.tsx # 점수 업적 토스트
+│   │   ├── PlayerStatusBar.tsx # 커리어 모드: 승진 바 / 일반: 점수·하이스코어
+│   │   ├── PlayerAvatar.tsx   # 아바타 이미지 (sm/md/xl)
+│   │   ├── AvatarPicker.tsx   # 설정 화면 아바타 그리드
+│   │   ├── ChipSelector.tsx   # 언어·BGM·볼륨 칩 UI
+│   │   ├── SettingsToggleRow.tsx
 │   │   ├── BoardView.tsx      # locked + active + ghost layer render
 │   │   ├── Cell.tsx           # 단일 셀 (색상, ghost, checker 배경)
 │   │   ├── HudPanel.tsx       # SCORE/LVL/STG/LINE + NEXT
 │   │   ├── MiniBoard.tsx      # NEXT 미니 그리드
 │   │   ├── TouchControls.tsx  # SwipeZone only (PanResponder)
 │   │   ├── GestureTutorial.tsx # 하단 제스처 안내 (Move / Rotate / Drop 애니메이션)
-│   │   ├── PlayerStatusBar.tsx # 아바타 + 승진 진행률 (placeholder)
 │   │   └── DPadController.tsx # (레거시) 미사용
 │   ├── hooks/
 │   │   ├── useSwipeActions.ts # PanResponder 스와이프 + DAS drag
 │   │   ├── useGameLoop.ts     # rAF tick → gravity + DAS
-│   │   ├── useGameFeedback.ts # haptics on action / line clear
-│   │   └── useKeyboardControls.ts # web keyboard (Phase 4)
+│   │   ├── useGameFeedback.ts # haptics + SFX on action / line clear / game over
+│   │   └── useKeyboardControls.ts # web keyboard
 │   └── theme/
 │       └── colors.ts          # theme + tetrominoColors
-├── __tests__/                 # Jest unit tests (board, bag, score, campaign)
+├── __tests__/                 # Jest (board, bag, scoring, campaign, career, score, engine)
 ├── eas.json                   # EAS Build profiles
 └── package.json
 ```
@@ -143,12 +183,27 @@ classic-tetris/
 
 ### 레이아웃 (세로 모바일 — **현재 구현**)
 
+**홈 (StartScreen)**
+
 ```
 ┌─────────────────────────────────────┐
-│              TETRIS            ❚❚   │  ← titleRow + pause
+│                              ⚙      │
+│         [Avatar XL]                 │
+│           TETRIS                    │
+│     Intern · 2/3 wins → Staff       │  ← career badge (or high score)
+│                                     │
+│         [ Start Game ]              │
+└─────────────────────────────────────┘
+```
+
+**게임 (GameScreen)**
+
+```
+┌─────────────────────────────────────┐
+│              TETRIS            ⚙ ❚❚ │  ← titleRow + settings + pause
 ├─────────────────────────────────────┤
-│  [Avatar] Player  Bronze Lv.1       │  ← PlayerStatusBar (full width)
-│           ████████░░  35% → Silver  │
+│  [Avatar] Intern                    │  ← PlayerStatusBar (career or score mode)
+│           ████████░░  2/3 wins      │
 ├─────────────────────────────────────┤
 │      │ SCORE │                       │
 │      │  LVL  │                       │
@@ -160,11 +215,29 @@ classic-tetris/
 └─────────────────────────────────────┘
 ```
 
+- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진 진행률; 스테이지 클리어 시 `recordStageResult` → 승진 오버레이
+- **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어 + NEW BEST; 점수 업적 토스트 (1k–50k)
 - HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
-- `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음** — 음수 마진 제거)
+- `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음**)
 - `centerColumn` = `gameCluster`(보드+HUD) + `GestureTutorial` (세로 gap 12)
-- `playAreaSpacer` × 2로 `centerColumn` **좌우 중앙 정렬**
-- 셀 크기: `playSection.onLayout` 높이에서 튜토리얼·gap·하단 lift·보드 border를 제외한 뒤 `computeCellSize`
+- 셀 크기: `playSection.onLayout` 높이에서 튜토리얼·gap·하단 lift·보드 border 제외 후 `computeCellSize`
+
+---
+
+## 앱 네비게이션 (overlay stack)
+
+`App.tsx` — Expo Router 미사용, 단일 `AppRoot` + absolute overlay:
+
+| 화면 | 조건 | 컴포넌트 |
+|------|------|----------|
+| Home | `!gameStarted` 또는 overlay=`home` | `StartScreen` |
+| Settings | overlay=`settings` | `SettingsScreen` |
+| Career | overlay=`career` (설정에서 진입) | `CareerScreen` |
+| Game | `gameStarted && overlay=null` | `GameScreen` |
+
+Provider 순서: `SafeAreaProvider` → `SettingsProvider` → `ScoreProvider` → `CareerProvider` → `GameAudioProvider`
+
+BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ### HudPanel 구현 방식
 
@@ -269,7 +342,7 @@ classic-tetris/
 - [x] `TouchControls`: `SwipeZone`, `useSwipeActions`
 - [x] `GestureTutorial`: 하단 제스처 안내 카드 (ActionButtons 대체)
 - [x] `GameScreen`: SafeAreaView + 동적 `computeCellSize` + flex spacer 중앙 정렬
-- [x] `PlayerStatusBar` + `profile.ts` placeholder (Phase 5 UI 셸 선행)
+- [x] `PlayerStatusBar` + `profile.ts` placeholder (Phase 5 UI 셸 선행) → Phase 5에서 실제 커리어/점수 연동 완료
 - [x] Android 네이티브 빌드 (`expo run:android --device`)
 - [x] 앱 아이콘 (`assets/icon.png`, adaptive icon, favicon) + `app.json` dark theme
 - [ ] ~~`DPadController`~~ → TouchControls로 대체 (파일만 잔존)
@@ -333,9 +406,9 @@ classic-tetris/
 
 - [x] Pause / Resume / Restart overlay (`GameOverlay`, title bar pause button)
 - [x] `expo-haptics` (`src/feedback/haptics.ts`, `useGameFeedback`)
-- [ ] ~~사운드 (`expo-av`)~~ — optional, 미구현 (haptics 우선)
+- [x] 사운드 (`expo-audio`) — BGM1/BGM2, drop/line/game-over SFX (`GameAudioContext`)
 - [x] 키보드 입력 web/dev (`useKeyboardControls`)
-- [x] Jest: board, line clear, 7-bag, score, campaign (`npm test` — 17 tests)
+- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **28 tests**)
 - [x] EAS Build 설정 (`eas.json`)
 - [x] 앱 아이콘 (다크 테트리스 그리드, `#0f0f1a` 배경)
 - [x] Splash screen (`app.json` → `assets/splash-icon.png`, `#0f0f1a`)
@@ -344,7 +417,7 @@ classic-tetris/
 
 - [x] Pause/Resume/Restart 동작
 - [x] Web 키보드 조작 (←→↓↑/Space/X/Z, P/Esc, R)
-- [x] `npm test` 17 tests pass
+- [x] `npm test` **28 tests** pass
 
 ---
 
@@ -389,15 +462,55 @@ classic-tetris/
 
 ---
 
-## Phase 5 (선택) — 확장 (다음)
+## Phase 5 — 메타게임 & 설정 ✅ (완료)
 
-- High score AsyncStorage
+**목표**: 하이스코어·커리어 승진·설정·i18n·오디오·홈/설정 UI
+
+### 작업
+
+- [x] `@react-native-async-storage/async-storage` — 설정·커리어·점수 영속화
+- [x] **설정** (`settings/`) — 언어(en/ko), BGM 트랙·볼륨, SFX 볼륨, 아바타, 커리어 모드 토글
+- [x] **i18n** (`i18n/`) — `expo-localization` + `i18n-js`, en/ko locale files
+- [x] **점수 모드** (`score/`) — 하이스코어 AsyncStorage, 1k–50k 업적, `AchievementToast`
+- [x] **커리어 모드** (`career/`) — 8직급(intern→ceo), 스테이지 클리어 승진, game over 유지, `PromotionOverlay`
+- [x] **아바타** — 10 PNG (`assets/avatars/`), `AvatarPicker`, `PlayerAvatar`
+- [x] **오디오** — `expo-audio` BGM loop + SFX; overlay/pause/game over 시 BGM pause
+- [x] **홈/설정/커리어 화면** — `StartScreen`, `SettingsScreen`, `CareerScreen`
+- [x] `App.tsx` overlay navigation + provider stack
+- [x] `GameScreen` — 커리어/점수 모드 분기, settings 버튼, achievement queue
+- [x] `PlayerStatusBar` — 커리어 승진 바 vs 점수/하이스코어 바
+- [x] `profile.ts` 제거 → `career/` + `score/` + `settings/` 로 대체
+- [x] Jest: `career.test.ts`, `score.test.ts`, `engine.test.ts`
+
+### 커리어 직급 (intern → ceo)
+
+| 직급 | 승진 필요 승리 | 최소 캠페인 레벨 |
+|------|----------------|------------------|
+| intern → staff | 3 | — |
+| staff → assistant | 5 | — |
+| assistant → manager | 7 | — |
+| manager → deputy | 10 | — |
+| deputy → director | 5 | 3 |
+| director → executive | 7 | 4 |
+| executive → ceo | 5 | 5 |
+
+### 완료 기준
+
+- [x] 홈 → Start → 게임 → 설정/일시정지 → 복귀 플로우
+- [x] 커리어 ON: 스테이지 클리어 승진, game over 시 진행 유지
+- [x] 커리어 OFF: 하이스코어·업적 저장 및 토스트
+- [x] en/ko 언어 전환 (설정에서 즉시 반영)
+- [x] BGM/SFX on/off·볼륨 조절
+
+---
+
+## Phase 6 (선택) — 추가 확장
+
 - 테마 (라이트/다크 보드) — 현재 다크 + 아바타 블루 보드
 - HOLD 재도입 (HudPanel + engine)
 - 2-player local (split screen)
-- **아바타 & 승진제** — `PlayerStatusBar` + `PlayerProfile` 연동
-  - [x] UI 셸 (`PlayerStatusBar`, `placeholderProfile`, `theme.avatarBlue`)
-  - [ ] 실제 승진 로직 / AsyncStorage
+- 추가 locale (ja 등)
+- EAS production 배포
 
 ---
 
@@ -420,7 +533,7 @@ classic-tetris/
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test
+npm test                    # 28 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
