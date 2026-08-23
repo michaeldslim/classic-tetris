@@ -9,6 +9,7 @@ import {
 } from './board';
 import { getNextStage, isStageComplete } from './campaign';
 import { computeLineClearScore } from './scoring';
+import { LOCK_SPAWN_DELAY_MS } from './speed';
 import type { ActivePiece, GameState } from './types';
 
 const SPAWN_X = 2;
@@ -41,6 +42,8 @@ export function spawnNextPiece(state: GameState): GameState {
       next,
       bag,
       active: null,
+      pendingSpawn: false,
+      spawnDelayMs: 0,
       gameOver: true,
       ...resetDasState(state),
     };
@@ -51,6 +54,8 @@ export function spawnNextPiece(state: GameState): GameState {
     next,
     bag,
     active,
+    pendingSpawn: false,
+    spawnDelayMs: 0,
     fallAccumulator: 0,
     ...resetDasState(state),
   };
@@ -103,17 +108,22 @@ export function lockActivePiece(state: GameState): GameState {
   const fullRows = findFullLineRows(mergedBoard);
 
   if (fullRows.length === 0) {
-    return spawnNextPiece({
+    return {
       ...state,
       board: mergedBoard,
       active: null,
-    });
+      pendingSpawn: true,
+      spawnDelayMs: LOCK_SPAWN_DELAY_MS,
+      ...resetDasState(state),
+    };
   }
 
   return {
     ...state,
     board: mergedBoard,
     active: null,
+    pendingSpawn: false,
+    spawnDelayMs: 0,
     lineClear: { rows: fullRows, elapsed: 0 },
     ...resetDasState(state),
   };
@@ -166,6 +176,8 @@ export function createInitialState(): GameState {
     dasAccumulator: 0,
     dasCharged: false,
     lineClear: null,
+    pendingSpawn: false,
+    spawnDelayMs: 0,
   });
 }
 
@@ -190,6 +202,8 @@ export function createStageRestartState(state: GameState): GameState {
     dasAccumulator: 0,
     dasCharged: false,
     lineClear: null,
+    pendingSpawn: false,
+    spawnDelayMs: 0,
   });
 }
 

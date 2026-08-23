@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   Pressable,
@@ -11,10 +11,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { careerRankKey, getCareerProgressCopy } from '../career/careerLabels';
 import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
-import { getGhostPiece, createInitialState, reduce } from '../game/engine';
+import { getGhostPiece } from '../game/engine';
 import { getStageLineTarget } from '../game/campaign';
 import { BOARD_WIDTH, computeCellSize } from '../game/types';
 import type { GameAction } from '../game/types';
+import { useGameEngine } from '../hooks/useGameEngine';
 import { useGameFeedback } from '../hooks/useGameFeedback';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
@@ -77,13 +78,15 @@ export function GameScreen({
   const runId = useRef(0);
   const recordStageResultRef = useRef(recordStageResult);
   recordStageResultRef.current = recordStageResult;
-  const [state, dispatch] = useReducer(
-    reduce,
-    undefined,
-    createInitialState,
-  );
+  const softDropActiveRef = useRef(false);
+  const { state, dispatch } = useGameEngine();
 
-  useGameLoop(state, dispatch, paused || !active || showPromotionOverlay);
+  useGameLoop(
+    state,
+    dispatch,
+    paused || !active || showPromotionOverlay,
+    softDropActiveRef,
+  );
   useGameFeedback(state, lastAction);
 
   const modalBlocking =
@@ -96,7 +99,8 @@ export function GameScreen({
     !active ||
     modalBlocking ||
     paused ||
-    state.lineClear !== null;
+    state.lineClear !== null ||
+    state.pendingSpawn;
 
   const lineTarget = getStageLineTarget(state.stage);
 
@@ -139,6 +143,7 @@ export function GameScreen({
 
   const boardOuterWidth = BOARD_WIDTH * cellSize + BOARD_BORDER;
   const boardColumnWidth = boardOuterWidth;
+  const gameClusterWidth = boardOuterWidth + PLAY_GAP + HUD_WIDTH;
 
   const displayBoard = state.board;
 
@@ -162,6 +167,14 @@ export function GameScreen({
 
   const handleDas = useCallback((direction: -1 | 0 | 1) => {
     dispatch({ type: 'DAS', direction });
+  }, []);
+
+  const handleSoftDropHold = useCallback((active: boolean) => {
+    softDropActiveRef.current = active;
+    if (active) {
+      setLastAction('SOFT_DROP');
+      dispatch('SOFT_DROP');
+    }
   }, []);
 
   const handlePlaySectionLayout = useCallback((event: LayoutChangeEvent) => {
@@ -215,6 +228,7 @@ export function GameScreen({
     setPaused((value) => {
       if (!value) {
         dispatch({ type: 'DAS', direction: 0 });
+        softDropActiveRef.current = false;
       }
       return !value;
     });
@@ -238,6 +252,12 @@ export function GameScreen({
   useEffect(() => {
     onGameOverChange(state.gameOver);
   }, [state.gameOver, onGameOverChange]);
+
+  useEffect(() => {
+    if (state.pendingSpawn) {
+      softDropActiveRef.current = false;
+    }
+  }, [state.pendingSpawn]);
 
   useEffect(() => {
     if (!state.gameOver) {
@@ -442,72 +462,86 @@ export function GameScreen({
                 <View style={styles.playAreaSpacer} />
 
                 <View style={styles.centerColumn}>
-                  <View style={styles.gameCluster}>
-                    <View
-                      style={[styles.boardColumn, { width: boardColumnWidth }]}
-                    >
-                      <SwipeZone
-                        onAction={handleAction}
-                        onDas={handleDas}
-                        disabled={inputDisabled}
+                  <View
+                    style={[styles.gameClusterWrap, { width: gameClusterWidth }]}
+                  >
+                    <View style={styles.gameCluster}>
+                      <View
+                        style={[styles.boardColumn, { width: boardColumnWidth }]}
                       >
-                        <BoardView
-                          board={displayBoard}
-                          cellSize={cellSize}
-                          active={state.active}
-                          ghost={ghostPiece}
-                          lineClear={state.lineClear}
-                        />
-                        {paused && !modalBlocking ? (
-                          <GameOverlay
-                            variant="pause"
-                            onPrimary={handleResume}
-                            onSecondary={handleRetryStage}
+                        <SwipeZone
+                          onAction={handleAction}
+                          onDas={handleDas}
+                          onSoftDropHold={handleSoftDropHold}
+                          disabled={inputDisabled}
+                        >
+                          <BoardView
+                            board={displayBoard}
+                            cellSize={cellSize}
+                            active={state.active}
+                            ghost={ghostPiece}
+                            lineClear={state.lineClear}
                           />
-                        ) : null}
-                        {state.stageCleared && !showPromotionOverlay ? (
-                          <GameOverlay
-                            variant="stageClear"
-                            level={state.level}
-                            stage={state.stage}
-                            onPrimary={handleNextStage}
-                          />
-                        ) : null}
-                        {state.campaignComplete ? (
-                          <GameOverlay
-                            variant="campaignComplete"
-                            score={state.score}
-                            highScore={scoreRecord.highScore}
-                            isNewHighScore={runSetRecord}
-                            onPrimary={handleRestartCampaign}
-                          />
-                        ) : null}
-                        {state.gameOver ? (
-                          <GameOverlay
-                            variant="gameOver"
-                            score={state.score}
-                            highScore={scoreRecord.highScore}
-                            isNewHighScore={runSetRecord}
-                            primaryDisabled={!gameOverRestartReady}
-                            onPrimary={handleGameOverRestart}
-                          />
-                        ) : null}
-                      </SwipeZone>
+                        </SwipeZone>
+                      </View>
+
+                      <HudPanel
+                        stats={{
+                          score: state.score,
+                          level: state.level,
+                          stage: state.stage,
+                          lines: state.lines,
+                          lineTarget,
+                        }}
+                        nextPiece={state.next}
+                      />
                     </View>
 
-                    <HudPanel
-                      stats={{
-                        score: state.score,
-                        level: state.level,
-                        stage: state.stage,
-                        lines: state.lines,
-                        lineTarget,
-                      }}
-                      nextPiece={state.next}
+                    {paused && !modalBlocking ? (
+                      <GameOverlay
+                        variant="pause"
+                        onPrimary={handleResume}
+                        onSecondary={handleRetryStage}
+                      />
+                    ) : null}
+                    {state.stageCleared && !showPromotionOverlay ? (
+                      <GameOverlay
+                        variant="stageClear"
+                        level={state.level}
+                        stage={state.stage}
+                        onPrimary={handleNextStage}
+                      />
+                    ) : null}
+                    {state.campaignComplete ? (
+                      <GameOverlay
+                        variant="campaignComplete"
+                        score={state.score}
+                        highScore={scoreRecord.highScore}
+                        isNewHighScore={runSetRecord}
+                        onPrimary={handleRestartCampaign}
+                      />
+                    ) : null}
+                    {state.gameOver ? (
+                      <GameOverlay
+                        variant="gameOver"
+                        score={state.score}
+                        highScore={scoreRecord.highScore}
+                        isNewHighScore={runSetRecord}
+                        primaryDisabled={!gameOverRestartReady}
+                        onPrimary={handleGameOverRestart}
+                      />
+                    ) : null}
+                    <PromotionOverlay
+                      visible={showPromotionOverlay}
+                      title={promotionTitle}
+                      subtitle={promotionSubtitle}
+                      isCeo={promotedRank === 'ceo'}
+                      playerAvatarId={settings.playerAvatarId}
+                      onComplete={handlePromotionComplete}
                     />
                   </View>
 
-                  <GestureTutorial width={boardOuterWidth} />
+                  <GestureTutorial width={gameClusterWidth} />
                 </View>
 
                 <View style={styles.playAreaSpacer} />
@@ -516,15 +550,6 @@ export function GameScreen({
           </View>
         </View>
       </View>
-
-      <PromotionOverlay
-        visible={showPromotionOverlay}
-        title={promotionTitle}
-        subtitle={promotionSubtitle}
-        isCeo={promotedRank === 'ceo'}
-        playerAvatarId={settings.playerAvatarId}
-        onComplete={handlePromotionComplete}
-      />
 
       {activeAchievement ? (
         <AchievementToast
@@ -608,6 +633,9 @@ const styles = StyleSheet.create({
   centerColumn: {
     gap: TUTORIAL_GAP,
     alignItems: 'flex-start',
+  },
+  gameClusterWrap: {
+    position: 'relative',
   },
   gameCluster: {
     flexDirection: 'row',

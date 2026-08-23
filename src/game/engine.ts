@@ -10,6 +10,7 @@ import {
   createInitialState,
   createStageRestartState,
   getGravityInterval,
+  spawnNextPiece,
 } from './lifecycle';
 import { LINE_CLEAR_DURATION_MS } from './speed';
 import type { EngineAction, GameState } from './types';
@@ -47,6 +48,21 @@ export function tick(state: GameState, dt: number): GameState {
     };
   }
 
+  if (state.pendingSpawn) {
+    const spawnDelayMs = state.spawnDelayMs - dt;
+    if (spawnDelayMs <= 0) {
+      return spawnNextPiece({
+        ...state,
+        spawnDelayMs: 0,
+      });
+    }
+
+    return {
+      ...state,
+      spawnDelayMs,
+    };
+  }
+
   if (!state.active) {
     return state;
   }
@@ -59,7 +75,12 @@ export function tick(state: GameState, dt: number): GameState {
   while (acc >= interval) {
     acc -= interval;
     nextState = applyGravityStep(nextState);
-    if (nextState.gameOver || !nextState.active || nextState.stageCleared) {
+    if (
+      nextState.pendingSpawn ||
+      nextState.gameOver ||
+      !nextState.active ||
+      nextState.stageCleared
+    ) {
       return { ...nextState, fallAccumulator: 0 };
     }
   }
@@ -87,7 +108,7 @@ export function reduce(state: GameState, action: EngineAction): GameState {
     return advanceToNextStage(state);
   }
 
-  if (state.lineClear || state.stageCleared || state.campaignComplete) {
+  if (state.pendingSpawn || state.lineClear || state.stageCleared || state.campaignComplete) {
     return state;
   }
 

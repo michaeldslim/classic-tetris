@@ -7,6 +7,7 @@ type SwipeZoneProps = {
   children: ReactNode;
   onAction: (action: GameAction) => void;
   onDas?: (direction: -1 | 0 | 1) => void;
+  onSoftDropHold?: (active: boolean) => void;
   disabled?: boolean;
 };
 
@@ -14,9 +15,10 @@ function SwipeZoneComponent({
   children,
   onAction,
   onDas,
+  onSoftDropHold,
   disabled = false,
 }: SwipeZoneProps) {
-  const panResponder = useSwipeActions(onAction, disabled, onDas);
+  const panResponder = useSwipeActions(onAction, disabled, onDas, onSoftDropHold);
 
   return (
     <View style={styles.swipeZone} {...panResponder.panHandlers}>

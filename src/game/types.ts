@@ -33,6 +33,10 @@ export type GameState = {
   dasAccumulator: number;
   dasCharged: boolean;
   lineClear: LineClearEffect | null;
+  /** Piece locked; spawn deferred so lock SFX can play before next piece appears. */
+  pendingSpawn: boolean;
+  /** Countdown (ms) before spawnNextPiece runs after a lock. */
+  spawnDelayMs: number;
 };
 
 export type GameAction =

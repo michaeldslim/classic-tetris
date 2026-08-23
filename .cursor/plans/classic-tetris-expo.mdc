@@ -12,7 +12,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 - 8×16 플레이 필드, 7종 테트로미노(I/O/T/S/Z/J/L)
 - 테트로미노별 **고유 색상**
 - **측면 HUD** (점수, 레벨, 스테이지, 라인, NEXT)
-- **스와이프 전용** 컨트롤 (탭 회전 · ←→ 이동 · ↓ 하드드롭) + 하단 **제스처 튜토리얼**
+- **스와이프 전용** 컨트롤 (탭 회전 · ←→ 이동 · ↓ 홀드 소프트드롭 · ↓ 스와이프 하드드롭) + 하단 **제스처 튜토리얼**
 - **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
 - 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
 
@@ -211,7 +211,7 @@ classic-tetris/
 │BOARD │ LINE  │                       │
 │swipe │ n/n   │                       │
 ├──────┴───────┴───────────────────────┤
-│ [Move ←→] [Rotate tap] [Drop ↓]     │  ← GestureTutorial (보드 너비 정렬)
+│ [Move ←→] [Rotate tap] [Hold ↓] [Swipe ↓] │  ← GestureTutorial (4 cards)
 └─────────────────────────────────────┘
 ```
 
@@ -262,7 +262,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 ### UX 목표
 
 - 보드에서 **스와이프·탭**으로 모든 조작
-- 하단 **GestureTutorial** — Move / Rotate / Fast drop 애니메이션 카드 3개
+- 하단 **GestureTutorial** — Move / Rotate / Soft drop / Hard drop 카드 4개
 - ROTATE/DROP 물리 버튼 제거 → 화면 공간 절약
 
 ### 레이아웃
@@ -270,9 +270,9 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 ```
 ┌─────────────────────────────────────┐
 │         MAIN BOARD (swipe zone)      │
-│   tap 회전  ·  ← → 이동  ·  ↓ 하드드롭 │
+│   tap 회전  ·  ← → 이동  ·  ↓ 홀드 소프트  ·  ↓ 스와이프 하드 │
 ├─────────────────────────────────────┤
-│  Move ←→  │  Rotate (tap)  │  Drop ↓ │
+│ Move ←→ │ Rotate │ Hold ↓ │ Swipe ↓ │
 └─────────────────────────────────────┘
 ```
 
@@ -283,14 +283,18 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 | 보드 탭 (slop ≤ 12px) | ROTATE (SRS wall kick) |
 | ← / → 스와이프 (quick) | LEFT / RIGHT (1칸, DAS 미시작) |
 | ← / → 드래그 유지 | DAS 220ms → ARR 95ms 반복 (`EngineAction DAS`) |
-| ↓ 스와이프 | HARD_DROP (fast drop) |
+| ↓ 드래그 유지 | SOFT_DROP — 즉시 1칸 + ARR 95ms 반복 (`useGameLoop`) |
+| ↓ 스와이프 (quick, 홀드 없음) | HARD_DROP (hard drop, 2점/칸) |
+| ↓ 키보드 (web) | SOFT_DROP (`ArrowDown`) |
+| Space / ↑ (web) | HARD_DROP |
 
 기본 중력은 NES 테이블 × 2 (`GRAVITY_SCALE`) — 스테이지 4+ 에서 `getGravityTier`로 가속.
 
 ### 구현 (완료)
 
-- `SwipeZone` + `useSwipeActions` — tap / quick swipe + drag DAS
-- `GestureTutorial` — 3-card animated hints (`GESTURE_TUTORIAL_HEIGHT = 68`)
+- `SwipeZone` + `useSwipeActions` — tap / quick swipe + horizontal DAS + vertical soft-drop hold
+- `GestureTutorial` — 4-card hints (`GESTURE_TUTORIAL_HEIGHT = 68`)
+- `useGameLoop` — `softDropActiveRef` 시 ARR 간격 `SOFT_DROP` dispatch
 - `GameScreen`: `useReducer(reduce)` + `useGameLoop` + ghost wiring
 
 ### 레이아웃 주의 (튜토리얼 vs 보드 높이)
@@ -506,6 +510,18 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ## Phase 6 (선택) — 추가 확장
 
+### Phase 6a — 소프트 드롭 ✅ (완료)
+
+**목표**: 모바일에서 fast drop(하드)과 함께 soft drop 지원
+
+- [x] `useSwipeActions` — ↓ 드래그 홀드 → `onSoftDropHold`; quick ↓ 스와이프 → `HARD_DROP`
+- [x] `useGameLoop` — 홀드 중 ARR 95ms `SOFT_DROP` 반복
+- [x] `GestureTutorial` — Soft drop / Hard drop 카드 분리 (4 cards)
+- [x] i18n — `tutorial.softDrop`, `tutorial.hardDrop` (en/ko)
+- [x] 엔진 `SOFT_DROP` 재사용 (1칸 + 1점; 웹 `ArrowDown`과 동일)
+
+### Phase 6b — 기타 (다음)
+
 - 테마 (라이트/다크 보드) — 현재 다크 + 아바타 블루 보드
 - HOLD 재도입 (HudPanel + engine)
 - 2-player local (split screen)
@@ -523,7 +539,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 5. **회전**: Guideline SRS (`srs.ts`); 8-wide 보드, spawn x=2
 6. **타입**: `type BoardCell = null | TetrominoType`; locked board는 color resolve at render
 7. **중력**: NES frame table × `GRAVITY_SCALE` 2 → ms (`speed.ts`); 캠페인 `getGravityTier(stage)`로 스테이지 4+ 가속
-8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action
+8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action; **↓ drag hold** = `SOFT_DROP` (ARR 95ms via `useGameLoop`)
 9. **네이티브 리소스**: `app.json` 변경 → `npx expo prebuild --clean` → `expo run:android`
 10. **Expo docs**: SDK 57 — https://docs.expo.dev/versions/v57.0.0/
 

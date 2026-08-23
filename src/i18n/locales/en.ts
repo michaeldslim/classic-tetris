@@ -46,7 +46,8 @@ export type TranslationSchema = {
   tutorial: {
     move: string;
     rotate: string;
-    drop: string;
+    softDrop: string;
+    hardDrop: string;
   };
   overlay: {
     paused: string;
@@ -187,7 +188,8 @@ export const en: TranslationSchema = {
   tutorial: {
     move: 'Move left & right',
     rotate: 'Rotate piece',
-    drop: 'Fast drop',
+    softDrop: 'Hold ↓',
+    hardDrop: 'Swipe ↓',
   },
   overlay: {
     paused: 'PAUSED',

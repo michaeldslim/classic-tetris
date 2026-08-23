@@ -29,6 +29,24 @@ describe('engine line clear', () => {
     expect(next).toBe(state);
   });
 
+  it('spawns the next piece after the lock spawn delay', () => {
+    let state = createInitialState();
+    state = {
+      ...state,
+      active: null,
+      pendingSpawn: true,
+      spawnDelayMs: 40,
+    };
+
+    state = tick(state, 20);
+    expect(state.active).toBeNull();
+    expect(state.spawnDelayMs).toBe(20);
+
+    state = tick(state, 25);
+    expect(state.active).not.toBeNull();
+    expect(state.pendingSpawn).toBe(false);
+  });
+
   it('retries the current stage without resetting campaign progress', () => {
     let state = createInitialState();
     state = {

@@ -67,7 +67,20 @@ function RotateDemo() {
   );
 }
 
-function DropDemo() {
+function SoftDropDemo() {
+  return (
+    <View style={styles.demoStage}>
+      <View style={styles.dropColumn}>
+        <Text style={styles.arrowDown}>↓</Text>
+        <View style={[styles.miniBoardFrame, styles.softDropFrame]}>
+          <MiniPiece style={styles.softDropPiece} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function HardDropDemo() {
   return (
     <View style={styles.demoStage}>
       <View style={styles.dropColumn}>
@@ -107,8 +120,11 @@ function GestureTutorialComponent({ width }: GestureTutorialProps) {
         <TutorialCard hint={translate('tutorial.rotate')}>
           <RotateDemo />
         </TutorialCard>
-        <TutorialCard hint={translate('tutorial.drop')}>
-          <DropDemo />
+        <TutorialCard hint={translate('tutorial.softDrop')}>
+          <SoftDropDemo />
+        </TutorialCard>
+        <TutorialCard hint={translate('tutorial.hardDrop')}>
+          <HardDropDemo />
         </TutorialCard>
       </View>
     </View>
@@ -123,7 +139,7 @@ const styles = StyleSheet.create({
   container: {},
   cardsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   card: {
     flex: 1,
@@ -131,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: theme.panelBorder,
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     paddingTop: 3,
     paddingBottom: 3,
     alignItems: 'center',
@@ -145,7 +161,7 @@ const styles = StyleSheet.create({
   },
   cardHint: {
     color: theme.textMuted,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -169,6 +185,13 @@ const styles = StyleSheet.create({
   dropFrame: {
     justifyContent: 'flex-start',
     paddingTop: 4,
+  },
+  softDropFrame: {
+    justifyContent: 'center',
+    paddingTop: 8,
+  },
+  softDropPiece: {
+    marginTop: 6,
   },
   pieceRow: {
     flexDirection: 'row',

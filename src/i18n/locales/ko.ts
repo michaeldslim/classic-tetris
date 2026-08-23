@@ -48,7 +48,8 @@ export const ko: TranslationSchema = {
   tutorial: {
     move: '좌우 이동',
     rotate: '블록 회전',
-    drop: '빠른 낙하',
+    softDrop: '↓ 길게',
+    hardDrop: '↓ 스와이프',
   },
   overlay: {
     paused: '일시정지',

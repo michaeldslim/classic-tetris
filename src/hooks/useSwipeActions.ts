@@ -9,15 +9,34 @@ export function useSwipeActions(
   onAction: (action: GameAction) => void,
   disabled = false,
   onDas?: (direction: -1 | 0 | 1) => void,
+  onSoftDropHold?: (active: boolean) => void,
 ) {
   const onActionRef = useRef(onAction);
   onActionRef.current = onAction;
   const onDasRef = useRef(onDas);
   onDasRef.current = onDas;
+  const onSoftDropHoldRef = useRef(onSoftDropHold);
+  onSoftDropHoldRef.current = onSoftDropHold;
   const disabledRef = useRef(disabled);
   disabledRef.current = disabled;
   const dasActiveRef = useRef(false);
   const dasDirectionRef = useRef<-1 | 0 | 1>(0);
+  const softDropActiveRef = useRef(false);
+
+  const stopDas = () => {
+    if (dasActiveRef.current) {
+      onDasRef.current?.(0);
+      dasActiveRef.current = false;
+      dasDirectionRef.current = 0;
+    }
+  };
+
+  const stopSoftDrop = () => {
+    if (softDropActiveRef.current) {
+      onSoftDropHoldRef.current?.(false);
+      softDropActiveRef.current = false;
+    }
+  };
 
   return useMemo(
     () =>
@@ -34,9 +53,20 @@ export function useSwipeActions(
           const absX = Math.abs(dx);
           const absY = Math.abs(dy);
 
+          if (absY > absX && dy >= SWIPE_DISTANCE) {
+            stopDas();
+            if (!softDropActiveRef.current) {
+              softDropActiveRef.current = true;
+              onSoftDropHoldRef.current?.(true);
+            }
+            return;
+          }
+
           if (absX <= absY || absX < SWIPE_DISTANCE) {
             return;
           }
+
+          stopSoftDrop();
 
           const direction = dx > 0 ? 1 : -1;
           if (dasDirectionRef.current === direction) {
@@ -49,13 +79,19 @@ export function useSwipeActions(
         },
         onPanResponderRelease: (_, { dx, dy }) => {
           if (disabledRef.current) {
+            stopSoftDrop();
+            stopDas();
+            return;
+          }
+
+          if (softDropActiveRef.current) {
+            stopSoftDrop();
+            stopDas();
             return;
           }
 
           if (dasActiveRef.current) {
-            onDasRef.current?.(0);
-            dasActiveRef.current = false;
-            dasDirectionRef.current = 0;
+            stopDas();
             return;
           }
 
@@ -77,11 +113,8 @@ export function useSwipeActions(
           }
         },
         onPanResponderTerminate: () => {
-          if (dasActiveRef.current) {
-            onDasRef.current?.(0);
-            dasActiveRef.current = false;
-            dasDirectionRef.current = 0;
-          }
+          stopSoftDrop();
+          stopDas();
         },
       }),
     [],
