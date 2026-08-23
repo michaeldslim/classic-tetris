@@ -23,8 +23,8 @@ export const ARR_INTERVAL_MS = 95;
 export const LINE_CLEAR_DURATION_MS = 480;
 export const LINE_CLEAR_FLASH_CYCLE_MS = 80;
 
-/** Delay before spawning the next piece after a lock (lets lock SFX lead the visual). */
-export const LOCK_SPAWN_DELAY_MS = 120;
+/** Delay before next piece spawns after lock. Must exceed dropped SFX output latency. */
+export const LOCK_SPAWN_DELAY_MS = 450;
 
 export function isLineClearFlashBright(elapsed: number): boolean {
   return Math.floor(elapsed / LINE_CLEAR_FLASH_CYCLE_MS) % 2 === 0;

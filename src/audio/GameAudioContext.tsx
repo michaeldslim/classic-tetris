@@ -24,8 +24,14 @@ void preload(SOUND_ASSETS.gameOver);
 void preload(SOUND_ASSETS.lineMatched);
 void preload(SOUND_ASSETS.dropped);
 
+const SFX_PLAYER_OPTIONS = {
+  keepAudioSessionActive: true,
+  preferredForwardBufferDuration: 0.25,
+  updateInterval: 100,
+} as const;
+
 function createSfxPlayer(source: (typeof SOUND_ASSETS)[SfxId]) {
-  const player = createAudioPlayer(source);
+  const player = createAudioPlayer(source, SFX_PLAYER_OPTIONS);
   player.loop = false;
   return player;
 }
@@ -102,8 +108,16 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
 
     const player = droppedPlayerRef.current;
     player.volume = levelToVolume(settingsRef.current.sfxVolume);
-    player.pause();
-    void player.seekTo(0);
+
+    if (player.playing) {
+      player.pause();
+    }
+
+    if (player.currentTime > 0.001) {
+      void player.seekTo(0).then(() => player.play());
+      return;
+    }
+
     player.play();
   }, []);
 
