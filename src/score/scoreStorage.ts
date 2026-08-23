@@ -47,7 +47,3 @@ export async function loadScoreRecord(): Promise<ScoreRecord> {
 export async function saveScoreRecord(record: ScoreRecord): Promise<void> {
   await AsyncStorage.setItem(SCORE_KEY, JSON.stringify(record));
 }
-
-export async function clearScoreRecord(): Promise<void> {
-  await AsyncStorage.removeItem(SCORE_KEY);
-}

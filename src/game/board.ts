@@ -8,7 +8,7 @@ export function createEmptyBoard(): BoardCell[][] {
   );
 }
 
-export function rotateShape(shape: number[][]): number[][] {
+function rotateShape(shape: number[][]): number[][] {
   const size = shape.length;
   return Array.from({ length: size }, (_, row) =>
     Array.from({ length: size }, (_, col) => shape[size - 1 - col][row]),
@@ -106,27 +106,4 @@ export function findFullLineRows(board: BoardCell[][]): number[] {
   }
 
   return rows;
-}
-
-export function countFilledCells(board: BoardCell[][]): number {
-  return board.reduce(
-    (total, row) => total + row.filter((cell) => cell !== null).length,
-    0,
-  );
-}
-
-export function buildDisplayBoard(
-  board: BoardCell[][],
-  active: {
-    type: TetrominoType;
-    x: number;
-    y: number;
-    rotation: number;
-  } | null,
-): BoardCell[][] {
-  if (!active) {
-    return board;
-  }
-
-  return mergePiece(board, active.type, active.rotation, active.x, active.y);
 }

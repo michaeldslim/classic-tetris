@@ -22,10 +22,3 @@ export function drawFromBag(bag: TetrominoType[]): {
   const [piece, ...rest] = queue;
   return { piece: piece!, bag: rest };
 }
-
-export function peekFromBag(bag: TetrominoType[]): TetrominoType {
-  if (bag.length === 0) {
-    return createShuffledBag()[0]!;
-  }
-  return bag[0]!;
-}

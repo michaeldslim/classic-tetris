@@ -1,4 +1,4 @@
-import type { CareerRank, CareerState, PromotionResult } from './types';
+import type { CareerRank, CareerState } from './types';
 import {
   CAREER_RANK_ORDER,
   getPromotionTarget,
@@ -27,10 +27,6 @@ export function isMaxCareerRank(state: CareerState): boolean {
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
-export function campaignLevelLabel(t: TranslateFn, level: number): string {
-  return t('career.campaignLevel', { level });
-}
-
 export function getCareerProgressCopy(
   t: TranslateFn,
   state: CareerState,
@@ -58,30 +54,6 @@ export function getCareerProgressCopy(
     }),
     progress,
   };
-}
-
-export function getCareerResultMessage(
-  t: TranslateFn,
-  result: PromotionResult,
-): string {
-  const rankLabel = t(careerRankKey(result.nextState.rank));
-  const target = getPromotionTarget(result.nextState.rank);
-
-  if (result.lost && target) {
-    return t('career.lossKeepsProgress', {
-      rank: rankLabel,
-      current: result.nextState.promotionWins,
-      required: target.requiredWins,
-    });
-  }
-
-  if (result.noProgressLevel) {
-    return t('career.noProgressLevel', {
-      minLevel: target?.minCampaignLevel ?? 1,
-    });
-  }
-
-  return getCareerProgressCopy(t, result.nextState).primary;
 }
 
 export function getPromotionRequirementCopy(

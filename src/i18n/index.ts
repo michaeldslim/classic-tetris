@@ -21,5 +21,3 @@ export function setI18nLanguage(language: AppLanguage) {
 export function t(scope: string, options?: Record<string, string | number>) {
   return i18n.t(scope, options);
 }
-
-export { i18n };

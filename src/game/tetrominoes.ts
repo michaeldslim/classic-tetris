@@ -1,5 +1,4 @@
 import type { TetrominoType } from '../theme/colors';
-import { tetrominoColors } from '../theme/colors';
 
 /** 4x4 matrices; 1 = filled cell */
 export const tetrominoShapes: Record<TetrominoType, number[][]> = {
@@ -48,7 +47,3 @@ export const tetrominoShapes: Record<TetrominoType, number[][]> = {
 };
 
 export const tetrominoTypes: TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
-
-export function getTetrominoColor(type: TetrominoType) {
-  return tetrominoColors[type];
-}
