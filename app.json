@@ -2,7 +2,7 @@
   "expo": {
     "name": "Classic Tetris",
     "slug": "classic-tetris",
-    "version": "1.0.0",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,13 +22,29 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mike008.classictetris"
+      "package": "com.mike008.classictetris",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-audio"
-    ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/42fb869a-c55e-4ca3-9073-45adcfe8f8bf"
+    },
+    "runtimeVersion": "2.1.0",
+    "extra": {
+      "eas": {
+        "projectId": "42fb869a-c55e-4ca3-9073-45adcfe8f8bf"
+      }
+    },
+    "owner": "mike008"
   }
 }

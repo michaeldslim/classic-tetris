@@ -113,36 +113,31 @@ classic-tetris/
 └── eas.json                # EAS Build profiles
 ```
 
-## Native Assets
+### First-time Android setup
 
-After changing icons in `app.json` or `assets/`, regenerate native resources with prebuild:
+If the `android/` folder is missing or you changed icons/splash assets:
 
 ```bash
 npx expo prebuild --platform android --clean
-npm run android:device
+npx expo run:android
 ```
 
 ## EAS Build
 
-[EAS Build](https://docs.expo.dev/build/introduction/) profiles are defined in `eas.json`:
+```bash
+eas build --platform android --profile production
+eas build --platform ios --profile production
+eas build --platform all --profile production
+```
 
-- `development` — dev client
-- `preview` — internal APK
-- `production` — store build (auto increment)
+### OTA Update (JS-only changes)
 
 ```bash
-npx eas build --platform android --profile preview
+eas update --channel production --message "Fix bug / update description"
 ```
 
-## Architecture
+`runtimeVersion` in `app.json` and EAS Update channels are used for JS-only updates. A new native build is required after native changes (icons, permissions, new native modules).
 
-```
-SwipeZone ──dispatch──► useReducer + engine ◄── tick ── useGameLoop (rAF)
-                              │
-BoardView / HudPanel ◄── GameState
-```
-
-UI components never mutate the board directly. All state changes go through `reduce(state, action)`.
 
 ## Roadmap
 
@@ -151,7 +146,6 @@ UI components never mutate the board directly. All state changes go through `red
 - [ ] Avatar & promotion system wiring
 - [ ] Sound effects (`expo-audio` plugin present)
 
-See [`.cursor/plans/classic-tetris-expo.mdc`](.cursor/plans/classic-tetris-expo.mdc) for the full implementation plan.
 
 ## License
 
