@@ -9,8 +9,8 @@ const SETTINGS_KEY = '@classic-tetris/settings';
 export const DEFAULT_SETTINGS: AppSettings = {
   language: detectDeviceLanguage(),
   bgmTrack: 'BGM1',
-  bgmVolume: 7,
-  sfxVolume: 8,
+  bgmVolume: 3,
+  sfxVolume: 5,
   playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
   careerModeEnabled: true,
 };
