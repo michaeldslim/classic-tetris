@@ -2,7 +2,7 @@
   "expo": {
     "name": "Classic Tetris",
     "slug": "classic-tetris",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -39,7 +39,7 @@
     "updates": {
       "url": "https://u.expo.dev/42fb869a-c55e-4ca3-9073-45adcfe8f8bf"
     },
-    "runtimeVersion": "2.1.0",
+    "runtimeVersion": "2.2.0",
     "extra": {
       "eas": {
         "projectId": "42fb869a-c55e-4ca3-9073-45adcfe8f8bf"
