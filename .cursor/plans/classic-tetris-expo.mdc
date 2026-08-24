@@ -30,7 +30,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **28 tests** (board, bag, scoring, campaign, career, score, engine) |
+| 테스트 | Jest — **31 tests** (board, bag, scoring, campaign, career, score, engine) |
 
 ### 빌드 & 실행
 
@@ -83,8 +83,8 @@ classic-tetris/
 │   │   └── campaign.ts        # stage line targets, level/stage progression, gravity tier
 │   ├── career/
 │   │   ├── types.ts           # CareerRank, CareerState, PromotionResult
-│   │   ├── careerRules.ts     # 8 ranks, promotion win counts, min campaign level
-│   │   ├── careerProgress.ts  # applyStageResult (promote / hold on game over)
+│   │   ├── careerRules.ts     # 8 ranks, sequential stage tracks, startCampaignLevel, getPromotionStagePosition
+│   │   ├── careerProgress.ts  # applyStageResult — validate expected stage, promote, hold on game over
 │   │   ├── careerLabels.ts    # i18n rank labels + progress copy
 │   │   ├── careerStorage.ts   # AsyncStorage persist
 │   │   └── CareerProvider.tsx # React context
@@ -215,7 +215,7 @@ classic-tetris/
 └─────────────────────────────────────┘
 ```
 
-- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진 진행률; 스테이지 클리어 시 `recordStageResult` → 승진 오버레이
+- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진 진행률; 스테이지 클리어 시 `recordStageResult` (순서 맞는 스테이지만 카운트) → 승진 오버레이; 승진 후 `getPromotionStagePosition`으로 **다음 직급 시작 레벨 · 스테이지 1**; `goToCampaignStage` / `NEXT_STAGE`·`RESTART` with level+stage
 - **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어 + NEW BEST; 점수 업적 토스트 (1k–50k)
 - HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
 - `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음**)
@@ -412,7 +412,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] `expo-haptics` (`src/feedback/haptics.ts`, `useGameFeedback`)
 - [x] 사운드 (`expo-audio`) — BGM1/BGM2, drop/line/game-over SFX (`GameAudioContext`)
 - [x] 키보드 입력 web/dev (`useKeyboardControls`)
-- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **28 tests**)
+- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **31 tests**)
 - [x] EAS Build 설정 (`eas.json`)
 - [x] 앱 아이콘 (다크 테트리스 그리드, `#0f0f1a` 배경)
 - [x] Splash screen (`app.json` → `assets/splash-icon.png`, `#0f0f1a`)
@@ -421,7 +421,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 - [x] Pause/Resume/Restart 동작
 - [x] Web 키보드 조작 (←→↓↑/Space/X/Z, P/Esc, R)
-- [x] `npm test` **28 tests** pass
+- [x] `npm test` **31 tests** pass
 
 ---
 
@@ -476,7 +476,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] **설정** (`settings/`) — 언어(en/ko), BGM 트랙·볼륨, SFX 볼륨, 아바타, 커리어 모드 토글
 - [x] **i18n** (`i18n/`) — `expo-localization` + `i18n-js`, en/ko locale files
 - [x] **점수 모드** (`score/`) — 하이스코어 AsyncStorage, 1k–50k 업적, `AchievementToast`
-- [x] **커리어 모드** (`career/`) — 8직급(intern→ceo), 스테이지 클리어 승진, game over 유지, `PromotionOverlay`
+- [x] **커리어 모드** (`career/`) — 8직급(intern→ceo), **순서대로** 스테이지 클리어 승진, 승진 시 다음 직급 챕터(시작 레벨·S1), game over 진행 유지, `PromotionOverlay`
 - [x] **아바타** — 10 PNG (`assets/avatars/`), `AvatarPicker`, `PlayerAvatar`
 - [x] **오디오** — `expo-audio` BGM loop + SFX; overlay/pause/game over 시 BGM pause
 - [x] **홈/설정/커리어 화면** — `StartScreen`, `SettingsScreen`, `CareerScreen`
@@ -488,20 +488,24 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ### 커리어 직급 (intern → ceo)
 
-| 직급 | 승진 필요 승리 | 최소 캠페인 레벨 |
-|------|----------------|------------------|
-| intern → staff | 3 | — |
-| staff → assistant | 5 | — |
-| assistant → manager | 7 | — |
-| manager → deputy | 10 | — |
-| deputy → director | 5 | 3 |
-| director → executive | 7 | 4 |
-| executive → ceo | 5 | 5 |
+각 직급은 **정해진 시작 캠페인 레벨**에서 **스테이지 1부터 순서대로** 클리어해야 승진 카운트가 쌓인다. 한 판에 연속 클리어할 필요는 없고, game over 시 `promotionWins` 유지. 승진하면 **다음 직급의 시작 레벨 · 스테이지 1**부터 (`getPromotionStagePosition` + `goToCampaignStage`). 5스테이지 초과 시 다음 캠페인 레벨 S1로 이어짐.
+
+| 승진 | 필요 클리어 | 시작 레벨 | 진행 예시 |
+|------|-------------|-----------|-----------|
+| intern → staff | 3 | 1 | L1 S1→S2→S3 |
+| staff → assistant | 5 | 2 | L2 S1→…→S5 |
+| assistant → manager | 7 | 2 | L2 S1→…→S5 → L3 S1→S2 |
+| manager → deputy | 10 | 2 | L2 전체 → L3 전체 |
+| deputy → director | 5 | 3 | L3 S1→…→S5 |
+| director → executive | 7 | 4 | L4 전체 → L5 S1→S2 |
+| executive → ceo | 5 | 5 | L5 S1→…→S5 |
+
+구현: `careerRules.ts` (`startCampaignLevel`, `getPromotionStagePosition`), `careerProgress.ts` (expected stage 검증), `GameScreen` (career ON 시 NEXT_STAGE/RESTART에 목표 level+stage 전달).
 
 ### 완료 기준
 
 - [x] 홈 → Start → 게임 → 설정/일시정지 → 복귀 플로우
-- [x] 커리어 ON: 스테이지 클리어 승진, game over 시 진행 유지
+- [x] 커리어 ON: 순서대로 스테이지 클리어 승진, 승진 후 다음 직급 챕터 시작, game over 시 진행 유지
 - [x] 커리어 OFF: 하이스코어·업적 저장 및 토스트
 - [x] en/ko 언어 전환 (설정에서 즉시 반영)
 - [x] BGM/SFX on/off·볼륨 조절
@@ -549,7 +553,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test                    # 28 tests
+npm test                    # 31 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
