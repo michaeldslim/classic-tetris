@@ -49,9 +49,9 @@ export type GameAction =
 export type EngineAction =
   | GameAction
   | { type: 'TICK'; dt: number }
-  | { type: 'RESTART' }
+  | { type: 'RESTART'; level?: number; stage?: number }
   | { type: 'RETRY_STAGE' }
-  | { type: 'NEXT_STAGE' }
+  | { type: 'NEXT_STAGE'; level?: number; stage?: number }
   | { type: 'DAS'; direction: -1 | 0 | 1 };
 
 export type BoardCell = TetrominoType | null;

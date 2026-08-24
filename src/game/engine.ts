@@ -9,7 +9,9 @@ import {
   completeLineClear,
   createInitialState,
   createStageRestartState,
+  createStateAtCampaignPosition,
   getGravityInterval,
+  goToCampaignStage,
   spawnNextPiece,
 } from './lifecycle';
 import { LINE_CLEAR_DURATION_MS } from './speed';
@@ -20,7 +22,9 @@ export {
   completeLineClear,
   createInitialState,
   createStageRestartState,
+  createStateAtCampaignPosition,
   getGravityInterval,
+  goToCampaignStage,
   lockActivePiece,
   spawnNextPiece,
 } from './lifecycle';
@@ -94,6 +98,9 @@ export function reduce(state: GameState, action: EngineAction): GameState {
   }
 
   if (typeof action === 'object' && action.type === 'RESTART') {
+    if (action.level !== undefined && action.stage !== undefined) {
+      return createStateAtCampaignPosition(action.level, action.stage);
+    }
     return createInitialState();
   }
 
@@ -104,6 +111,9 @@ export function reduce(state: GameState, action: EngineAction): GameState {
   if (typeof action === 'object' && action.type === 'NEXT_STAGE') {
     if (!state.stageCleared) {
       return state;
+    }
+    if (action.level !== undefined && action.stage !== undefined) {
+      return goToCampaignStage(state, action.level, action.stage);
     }
     return advanceToNextStage(state);
   }

@@ -242,7 +242,7 @@ export const en: TranslationSchema = {
     modeLabel: 'Career mode',
     modeDesc: 'Climb ranks by clearing stages',
     rulesSnippet:
-      'Start as an Intern and clear stages to climb the ladder. Clears are cumulative at your current rank — no streak required. Game overs keep your progress. From Deputy onward, clears only count at higher campaign levels.',
+      'Start as an Intern and clear stages in order at each rank’s campaign level. You do not need to clear them in one run — game overs keep your progress. After a promotion, the next rank starts at its level · stage 1.',
     campaignLevel: 'Level {{level}}',
     screen: {
       title: 'Career progress',

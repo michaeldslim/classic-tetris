@@ -129,6 +129,43 @@ export function lockActivePiece(state: GameState): GameState {
   };
 }
 
+export function goToCampaignStage(
+  state: GameState,
+  level: number,
+  stage: number,
+): GameState {
+  const bag = createShuffledBag();
+  const { piece: first, bag: bagAfterFirst } = drawFromBag(bag);
+
+  return spawnNextPiece({
+    board: createEmptyBoard(),
+    active: null,
+    next: first,
+    bag: bagAfterFirst,
+    score: state.score,
+    level,
+    stage,
+    lines: 0,
+    gameOver: false,
+    stageCleared: false,
+    campaignComplete: false,
+    fallAccumulator: 0,
+    dasDirection: 0,
+    dasAccumulator: 0,
+    dasCharged: false,
+    lineClear: null,
+    pendingSpawn: false,
+    spawnDelayMs: 0,
+  });
+}
+
+export function createStateAtCampaignPosition(
+  level: number,
+  stage: number,
+): GameState {
+  return goToCampaignStage(createInitialState(), level, stage);
+}
+
 export function advanceToNextStage(state: GameState): GameState {
   const next = getNextStage(state.level, state.stage);
 

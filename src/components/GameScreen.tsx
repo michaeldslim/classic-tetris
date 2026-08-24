@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { careerRankKey, getCareerProgressCopy } from '../career/careerLabels';
+import { getPromotionStagePosition } from '../career/careerRules';
 import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
 import { getGhostPiece } from '../game/engine';
@@ -78,6 +79,7 @@ export function GameScreen({
   const runId = useRef(0);
   const recordStageResultRef = useRef(recordStageResult);
   recordStageResultRef.current = recordStageResult;
+  const careerPositionSynced = useRef(false);
   const softDropActiveRef = useRef(false);
   const { state, dispatch } = useGameEngine();
 
@@ -189,8 +191,31 @@ export function GameScreen({
 
   const handleNextStage = useCallback(() => {
     setShowPromotionOverlay(false);
+
+    if (settings.careerModeEnabled && careerLoaded) {
+      const nextPosition = getPromotionStagePosition(
+        careerState.rank,
+        careerState.promotionWins,
+      );
+
+      if (nextPosition) {
+        dispatch({
+          type: 'NEXT_STAGE',
+          level: nextPosition.level,
+          stage: nextPosition.stage,
+        });
+        return;
+      }
+    }
+
     dispatch({ type: 'NEXT_STAGE' });
-  }, []);
+  }, [
+    careerLoaded,
+    careerState.promotionWins,
+    careerState.rank,
+    dispatch,
+    settings.careerModeEnabled,
+  ]);
 
   const resetRunTracking = useCallback(() => {
     runId.current += 1;
@@ -211,8 +236,32 @@ export function GameScreen({
     resetRunTracking();
     setRunSetRecord(false);
     lastProcessedScoreRef.current = 0;
+
+    if (settings.careerModeEnabled && careerLoaded) {
+      const startPosition = getPromotionStagePosition(
+        careerState.rank,
+        careerState.promotionWins,
+      );
+
+      if (startPosition) {
+        dispatch({
+          type: 'RESTART',
+          level: startPosition.level,
+          stage: startPosition.stage,
+        });
+        return;
+      }
+    }
+
     dispatch({ type: 'RESTART' });
-  }, [resetRunTracking]);
+  }, [
+    careerLoaded,
+    careerState.promotionWins,
+    careerState.rank,
+    dispatch,
+    resetRunTracking,
+    settings.careerModeEnabled,
+  ]);
 
   const handleGameOverRestart = useCallback(() => {
     if (!gameOverRestartReady) {
@@ -331,6 +380,7 @@ export function GameScreen({
     const result = recordStageResultRef.current({
       cleared: true,
       campaignLevel: state.level,
+      campaignStage: state.stage,
     });
 
     if (result) {
@@ -360,6 +410,7 @@ export function GameScreen({
     const result = recordStageResultRef.current({
       cleared: false,
       campaignLevel: state.level,
+      campaignStage: state.stage,
     });
 
     if (result) {
@@ -368,8 +419,41 @@ export function GameScreen({
   }, [
     state.gameOver,
     state.level,
+    state.stage,
     settings.careerModeEnabled,
     careerLoaded,
+  ]);
+
+  useEffect(() => {
+    if (!careerLoaded || !settings.careerModeEnabled || careerPositionSynced.current) {
+      return;
+    }
+
+    careerPositionSynced.current = true;
+    const startPosition = getPromotionStagePosition(
+      careerState.rank,
+      careerState.promotionWins,
+    );
+
+    if (!startPosition) {
+      return;
+    }
+
+    if (state.level !== startPosition.level || state.stage !== startPosition.stage) {
+      dispatch({
+        type: 'RESTART',
+        level: startPosition.level,
+        stage: startPosition.stage,
+      });
+    }
+  }, [
+    careerLoaded,
+    careerState.promotionWins,
+    careerState.rank,
+    dispatch,
+    settings.careerModeEnabled,
+    state.level,
+    state.stage,
   ]);
 
   const handleOpenSettings = useCallback(() => {
