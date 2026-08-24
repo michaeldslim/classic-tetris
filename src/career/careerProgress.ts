@@ -1,4 +1,8 @@
-import { getPromotionTarget, isHigherRank, meetsCampaignLevel } from './careerRules';
+import {
+  getPromotionStagePosition,
+  getPromotionTarget,
+  isHigherRank,
+} from './careerRules';
 import type {
   CareerRank,
   CareerState,
@@ -19,6 +23,16 @@ function withHighestRank(state: CareerState, rank: CareerRank): CareerState {
     highestRankAchieved: isHigherRank(rank, state.highestRankAchieved)
       ? rank
       : state.highestRankAchieved,
+  };
+}
+
+function unchangedResult(state: CareerState): PromotionResult {
+  return {
+    nextState: state,
+    promoted: null,
+    lost: false,
+    noProgressLevel: false,
+    unchanged: true,
   };
 }
 
@@ -47,17 +61,13 @@ export function applyStageResult(
     };
   }
 
+  const expectedStage = getPromotionStagePosition(state.rank, state.promotionWins);
   if (
-    target.minCampaignLevel &&
-    !meetsCampaignLevel(input.campaignLevel, target.minCampaignLevel)
+    !expectedStage ||
+    input.campaignLevel !== expectedStage.level ||
+    input.campaignStage !== expectedStage.stage
   ) {
-    return {
-      nextState: state,
-      promoted: null,
-      lost: false,
-      noProgressLevel: true,
-      unchanged: false,
-    };
+    return unchangedResult(state);
   }
 
   const nextWins = state.promotionWins + 1;

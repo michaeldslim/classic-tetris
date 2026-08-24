@@ -65,14 +65,10 @@ export function getPromotionRequirementCopy(
     return null;
   }
 
-  if (requirement.minCampaignLevel) {
-    return t('career.ladder.requirementLevel', {
-      wins: requirement.requiredWins,
-      minLevel: requirement.minCampaignLevel,
-    });
-  }
-
-  return t('career.ladder.requirement', { wins: requirement.requiredWins });
+  return t('career.ladder.requirementLevel', {
+    wins: requirement.requiredWins,
+    minLevel: requirement.startCampaignLevel,
+  });
 }
 
 export type CareerLadderStatus = 'achieved' | 'current' | 'locked';

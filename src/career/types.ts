@@ -17,6 +17,7 @@ export interface CareerState {
 export interface StageResultInput {
   cleared: boolean;
   campaignLevel: number;
+  campaignStage: number;
 }
 
 export interface PromotionResult {
@@ -29,6 +30,6 @@ export interface PromotionResult {
 
 export interface PromotionTarget {
   requiredWins: number;
-  minCampaignLevel?: number;
+  startCampaignLevel: number;
   nextRank: CareerRank;
 }

@@ -1,3 +1,4 @@
+import { STAGES_PER_LEVEL } from '../game/campaign';
 import type { CareerRank, PromotionTarget } from './types';
 
 export const CAREER_RANK_ORDER: CareerRank[] = [
@@ -12,15 +13,15 @@ export const CAREER_RANK_ORDER: CareerRank[] = [
 ];
 
 const PROMOTION_RULES: Partial<
-  Record<CareerRank, { requiredWins: number; minCampaignLevel?: number }>
+  Record<CareerRank, { requiredWins: number; startCampaignLevel: number }>
 > = {
-  intern: { requiredWins: 3 },
-  staff: { requiredWins: 5 },
-  assistant: { requiredWins: 7 },
-  manager: { requiredWins: 10 },
-  deputy: { requiredWins: 5, minCampaignLevel: 3 },
-  director: { requiredWins: 7, minCampaignLevel: 4 },
-  executive: { requiredWins: 5, minCampaignLevel: 5 },
+  intern: { requiredWins: 3, startCampaignLevel: 1 },
+  staff: { requiredWins: 5, startCampaignLevel: 2 },
+  assistant: { requiredWins: 7, startCampaignLevel: 2 },
+  manager: { requiredWins: 10, startCampaignLevel: 2 },
+  deputy: { requiredWins: 5, startCampaignLevel: 3 },
+  director: { requiredWins: 7, startCampaignLevel: 4 },
+  executive: { requiredWins: 5, startCampaignLevel: 5 },
 };
 
 export function getNextRank(rank: CareerRank): CareerRank | null {
@@ -29,13 +30,6 @@ export function getNextRank(rank: CareerRank): CareerRank | null {
     return null;
   }
   return CAREER_RANK_ORDER[index + 1];
-}
-
-export function meetsCampaignLevel(
-  currentLevel: number,
-  minimumLevel: number,
-): boolean {
-  return currentLevel >= minimumLevel;
 }
 
 export function getPromotionTarget(rank: CareerRank): PromotionTarget | null {
@@ -52,8 +46,26 @@ export function getPromotionTarget(rank: CareerRank): PromotionTarget | null {
   return {
     nextRank,
     requiredWins: rule.requiredWins,
-    minCampaignLevel: rule.minCampaignLevel,
+    startCampaignLevel: rule.startCampaignLevel,
   };
+}
+
+/** Next required campaign level/stage for this rank (0-based completed wins). */
+export function getPromotionStagePosition(
+  rank: CareerRank,
+  completedWins: number,
+): { level: number; stage: number } | null {
+  const target = getPromotionTarget(rank);
+  if (!target || completedWins >= target.requiredWins) {
+    return null;
+  }
+
+  const level =
+    target.startCampaignLevel +
+    Math.floor(completedWins / STAGES_PER_LEVEL);
+  const stage = (completedWins % STAGES_PER_LEVEL) + 1;
+
+  return { level, stage };
 }
 
 export function rankIndex(rank: CareerRank): number {
