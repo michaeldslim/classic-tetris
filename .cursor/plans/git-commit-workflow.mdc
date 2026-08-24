@@ -88,7 +88,6 @@ git add src/i18n/index.ts src/i18n/locales/en.json
 
 # Verify what will be committed
 git status
-git diff --staged
 ```
 
 - Prefer **explicit file paths** over `git add .` or `git add -A`.
