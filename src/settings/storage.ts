@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resolveAvatarId } from '../constants/avatars';
 import { detectDeviceLanguage } from '../i18n';
 import type { AppSettings } from './types';
-import { DEFAULT_PLAYER_AVATAR_ID } from './types';
+import { DEFAULT_PLAYER_AVATAR_ID, isBgmTrack } from './types';
 
 const SETTINGS_KEY = '@classic-tetris/settings';
 
@@ -30,6 +30,9 @@ export async function loadSettings(): Promise<AppSettings> {
         parsed.playerAvatarId,
         DEFAULT_PLAYER_AVATAR_ID,
       ),
+      bgmTrack: isBgmTrack(parsed.bgmTrack)
+        ? parsed.bgmTrack
+        : DEFAULT_SETTINGS.bgmTrack,
       careerModeEnabled:
         typeof parsed.careerModeEnabled === 'boolean'
           ? parsed.careerModeEnabled

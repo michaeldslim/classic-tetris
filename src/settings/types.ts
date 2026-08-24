@@ -2,7 +2,13 @@ import type { AvatarId } from '../constants/avatars';
 import { DEFAULT_PLAYER_AVATAR_ID } from '../constants/avatars';
 import type { AppLanguage } from '../i18n';
 
-export type BgmTrack = 'BGM1' | 'BGM2';
+export type BgmTrack = 'BGM1' | 'BGM2' | 'BGM3' | 'BGM4';
+
+export const BGM_TRACKS: BgmTrack[] = ['BGM1', 'BGM2', 'BGM3', 'BGM4'];
+
+export function isBgmTrack(value: unknown): value is BgmTrack {
+  return typeof value === 'string' && BGM_TRACKS.includes(value as BgmTrack);
+}
 
 export type AppSettings = {
   language: AppLanguage;

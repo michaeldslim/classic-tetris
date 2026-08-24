@@ -27,6 +27,8 @@ export type TranslationSchema = {
   bgm: {
     bgm1: string;
     bgm2: string;
+    bgm3: string;
+    bgm4: string;
   };
   hud: {
     score: string;
@@ -169,6 +171,8 @@ export const en: TranslationSchema = {
   bgm: {
     bgm1: 'BGM 1',
     bgm2: 'BGM 2',
+    bgm3: 'BGM 3',
+    bgm4: 'BGM 4',
   },
   hud: {
     score: 'SCORE',

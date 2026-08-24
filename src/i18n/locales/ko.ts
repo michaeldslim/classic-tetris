@@ -29,6 +29,8 @@ export const ko: TranslationSchema = {
   bgm: {
     bgm1: 'BGM 1',
     bgm2: 'BGM 2',
+    bgm3: 'BGM 3',
+    bgm4: 'BGM 4',
   },
   hud: {
     score: '점수',

@@ -6,7 +6,7 @@ import { useCareer } from '../career/CareerProvider';
 import { SCORE_ACHIEVEMENTS, achievementKey } from '../score/achievements';
 import { useScore } from '../score/ScoreProvider';
 import { useSettings } from '../settings/SettingsContext';
-import type { BgmTrack } from '../settings/types';
+import { BGM_TRACKS } from '../settings/types';
 import type { AppLanguage } from '../i18n';
 import { theme } from '../theme/colors';
 import { AvatarPicker } from './AvatarPicker';
@@ -59,10 +59,10 @@ function SettingsScreenComponent({ onBack, onOpenCareer }: SettingsScreenProps) 
     { value: 'en' as AppLanguage, label: translate('language.en') },
   ];
 
-  const bgmOptions = [
-    { value: 'BGM1' as BgmTrack, label: translate('bgm.bgm1') },
-    { value: 'BGM2' as BgmTrack, label: translate('bgm.bgm2') },
-  ];
+  const bgmOptions = BGM_TRACKS.map((track) => ({
+    value: track,
+    label: translate(`bgm.${track.toLowerCase()}`),
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
