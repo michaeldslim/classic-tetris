@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~5, 캠페인·커리어·설정·i18n·오디오 반영)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~6 + Phase 7 버그픽스)
 alwaysApply: false
 ---
 
@@ -30,7 +30,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **31 tests** (board, bag, scoring, campaign, career, score, engine) |
+| 테스트 | Jest — **33 tests** (board, bag, scoring, campaign, career, score, engine) |
 
 ### 빌드 & 실행
 
@@ -412,7 +412,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] `expo-haptics` (`src/feedback/haptics.ts`, `useGameFeedback`)
 - [x] 사운드 (`expo-audio`) — BGM1/BGM2, drop/line/game-over SFX (`GameAudioContext`)
 - [x] 키보드 입력 web/dev (`useKeyboardControls`)
-- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **31 tests**)
+- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **33 tests**)
 - [x] EAS Build 설정 (`eas.json`)
 - [x] 앱 아이콘 (다크 테트리스 그리드, `#0f0f1a` 배경)
 - [x] Splash screen (`app.json` → `assets/splash-icon.png`, `#0f0f1a`)
@@ -421,7 +421,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 - [x] Pause/Resume/Restart 동작
 - [x] Web 키보드 조작 (←→↓↑/Space/X/Z, P/Esc, R)
-- [x] `npm test` **31 tests** pass
+- [x] `npm test` **33 tests** pass
 
 ---
 
@@ -651,6 +651,50 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ---
 
+## Phase 7 — 버그픽스 / 오디오 폴리시 (다음)
+
+**목표**: cold start(앱 cold launch → START GAME) 후 **첫 번째 테트로미노 착지**부터 `dropped.mp3` lock SFX가 재생되도록 수정.
+
+### 알려진 증상
+
+- 앱 cold start 직후 첫 판에서 **1번째 피스 lock** — `dropped.mp3` **무음**
+- **2번째 lock부터** 정상 재생
+- 이후 판·재시작에서는 대개 정상 (cold start 한정으로 재현되는 경우 많음)
+
+### 관련 코드 (조사 시작점)
+
+| 파일 | 역할 |
+|------|------|
+| `src/hooks/useGameEngine.ts` | lock 시 `shouldPlayLockSound` → `playLockSound()` |
+| `src/audio/lockSound.ts` | `registerLockSoundPlayer` / `playLockSound` 브릿지 |
+| `src/audio/GameAudioContext.tsx` | `playLockSoundSync`, `dropped` player, `preload`, `setAudioModeAsync` |
+| `src/audio/sounds.ts` | `SOUND_ASSETS.dropped` |
+| `src/game/speed.ts` | `LOCK_SPAWN_DELAY_MS` (450ms — lock SFX 후 spawn 지연) |
+
+### 추정 원인 (가설)
+
+1. **`registerLockSoundPlayer` 타이밍** — `GameAudioProvider` `useEffect`에서 등록; 첫 lock이 등록 전이면 `playLockSound()` no-op
+2. **오디오 세션 cold start** — `setAudioModeAsync` 비동기 완료 전 첫 `player.play()` 실패/무음
+3. **expo-audio 첫 재생** — `dropped` player 첫 `play()`만 실패; 두 번째부터 `seekTo(0)` 경로로 정상 (`currentTime > 0.001` 분기)
+4. (낮음) 첫 spawn이 `createInitialState` → `spawnNextPiece` 직접 경로라 lock 감지 조건과 어긋남 — 코드상 첫 lock도 `pendingSpawn` 전환으로 감지되어야 함
+
+### 작업
+
+- [ ] cold start 재현 시나리오 문서화 (Android / iOS / web)
+- [ ] `GameAudioProvider` mount 시 dropped player **warm-up** (silent priming 또는 `preload` + test play)
+- [ ] `setAudioModeAsync` 완료 후 lock player 등록 / 게임 입력 허용 순서 정리
+- [ ] `playLockSoundSync` 첫 재생 경로 단순화 (`seekTo(0)` 항상 또는 `playing` reset 통일)
+- [ ] (선택) lock SFX 실패 시 dev-only log
+
+### 완료 기준
+
+- [ ] cold start → START → **첫 피스 lock**에서 `dropped.mp3` audible
+- [ ] 2번째 이후 lock, line clear, game over SFX 회귀 없음
+- [ ] SFX volume 0 일 때 여전히 무음
+- [ ] `npm test` pass
+
+---
+
 ## 구현 시 주의사항
 
 1. **셀 크기**: `computeCellSize(boardWidth, boardHeight)` — 8×16; `onLayout`은 `playSection`에만 (PlayerStatusBar 높이 제외). `boardHeight = playSectionHeight - GESTURE_TUTORIAL_HEIGHT(68) - TUTORIAL_GAP(12) - BOTTOM_LIFT(24) - BOARD_BORDER(4)`
@@ -670,7 +714,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test                    # 31 tests
+npm test                    # 33 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
