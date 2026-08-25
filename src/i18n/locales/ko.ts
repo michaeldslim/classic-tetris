@@ -66,6 +66,7 @@ export const ko: TranslationSchema = {
     highScore: '최고: {{score}}',
     newHighScore: '신기록!',
     stageInfo: '레벨 {{level}} · 스테이지 {{stage}}',
+    careerNextChapter: '다음: {{rank}} · 레벨 {{level}} · 스테이지 {{stage}}',
     pauseHint: '계속하려면 RESUME 또는 P / Esc',
   },
   accessibility: {
@@ -93,6 +94,7 @@ export const ko: TranslationSchema = {
       subtitle: '사장이 되었습니다',
     },
     progressNext: '다음: {{nextRank}} ({{required}}클리어)',
+    nextStage: '다음: 레벨 {{level}} · 스테이지 {{stage}}',
     lossKeepsProgress: '{{rank}} · {{current}}/{{required}}클리어 — 진행 유지',
     noProgressLevel: '승진 카운트 없음 — 레벨 {{minLevel}} 이상 필요',
     homeBadge: '{{rank}} · {{current}}/{{required}}',
@@ -119,6 +121,7 @@ export const ko: TranslationSchema = {
       requirement: '승진 조건: {{wins}}클리어',
       requirementLevel: '승진 조건: 레벨 {{minLevel}}+ · {{wins}}클리어',
       progressToNext: '{{current}}/{{required}}클리어 → {{nextRank}}',
+      stagePath: '경로: {{path}}',
     },
     reset: {
       currentProgress: '현재 진행',

@@ -3,14 +3,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   careerRankKey,
+  getCareerLadderDetailCopy,
   getCareerLadderRows,
   getCareerLadderStatus,
   getCareerProgressCopy,
-  getPromotionRequirementCopy,
   isMaxCareerRank,
   type CareerLadderStatus,
 } from '../career/careerLabels';
-import { getPromotionTarget } from '../career/careerRules';
 import { useCareer } from '../career/CareerProvider';
 import type { CareerRank, CareerState } from '../career/types';
 import type { AvatarId } from '../constants/avatars';
@@ -35,32 +34,6 @@ function ladderStatusLabel(
     default:
       return translate('career.ladder.locked');
   }
-}
-
-function ladderDetailCopy(
-  translate: (key: string, params?: Record<string, string | number>) => string,
-  state: CareerState,
-  rank: CareerRank,
-  status: CareerLadderStatus,
-): string {
-  if (status === 'current') {
-    const target = getPromotionTarget(state.rank);
-    if (!target) {
-      return translate('career.maxRank', { rank: translate(careerRankKey(rank)) });
-    }
-
-    return translate('career.ladder.progressToNext', {
-      current: state.promotionWins,
-      required: target.requiredWins,
-      nextRank: translate(careerRankKey(target.nextRank)),
-    });
-  }
-
-  if (rank === 'intern') {
-    return translate('career.ladder.startingRank');
-  }
-
-  return getPromotionRequirementCopy(translate, rank) ?? '';
 }
 
 function CareerDisabledState({ onOpenSettings }: { onOpenSettings: () => void }) {
@@ -106,6 +79,9 @@ function CareerSummary({
           {progress.secondary ? (
             <Text style={styles.summaryHint}>{progress.secondary}</Text>
           ) : null}
+          {progress.nextStage ? (
+            <Text style={styles.summaryNextStage}>{progress.nextStage}</Text>
+          ) : null}
         </View>
       </View>
       {showHighest ? (
@@ -131,7 +107,7 @@ function LadderRow({
 }) {
   const { translate } = useSettings();
   const status = getCareerLadderStatus(state, rank);
-  const detail = ladderDetailCopy(translate, state, rank, status);
+  const detail = getCareerLadderDetailCopy(translate, state, rank, status);
   const isHighlighted = status === 'current' || rank === state.highestRankAchieved;
 
   return (
@@ -331,6 +307,12 @@ const styles = StyleSheet.create({
   summaryHint: {
     color: theme.textMuted,
     fontSize: 12,
+    lineHeight: 18,
+  },
+  summaryNextStage: {
+    color: theme.text,
+    fontSize: 12,
+    fontWeight: '700',
     lineHeight: 18,
   },
   rulesText: {

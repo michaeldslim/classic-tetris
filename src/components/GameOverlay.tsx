@@ -10,6 +10,7 @@ type GameOverlayProps = {
   isNewHighScore?: boolean;
   level?: number;
   stage?: number;
+  careerHint?: string;
   primaryDisabled?: boolean;
   onPrimary: () => void;
   onSecondary?: () => void;
@@ -22,6 +23,7 @@ function GameOverlayComponent({
   isNewHighScore = false,
   level,
   stage,
+  careerHint,
   primaryDisabled = false,
   onPrimary,
   onSecondary,
@@ -55,6 +57,9 @@ function GameOverlayComponent({
             stage: String(stage),
           })}
         </Text>
+      ) : null}
+      {isStageClear && careerHint ? (
+        <Text style={styles.careerHint}>{careerHint}</Text>
       ) : null}
       {!isPause && !isStageClear && score !== undefined ? (
         <Text style={styles.score}>
@@ -120,6 +125,12 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 13,
     fontWeight: '600',
+  },
+  careerHint: {
+    color: theme.accent,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   score: {
     color: theme.text,

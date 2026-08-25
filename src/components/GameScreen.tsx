@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { careerRankKey, getCareerProgressCopy } from '../career/careerLabels';
+import { careerRankKey, getCareerProgressCopy, getStageClearCareerHint } from '../career/careerLabels';
 import { getPromotionStagePosition } from '../career/careerRules';
 import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
@@ -164,8 +164,27 @@ export function GameScreen({
       rankLabel: progress.primary,
       progress: progress.progress,
       progressHint: progress.secondary ?? progress.primary,
+      nextStageLabel: progress.nextStage,
     };
   }, [settings.careerModeEnabled, careerLoaded, translate, careerState]);
+
+  const stageClearCareerHint = useMemo(() => {
+    if (!settings.careerModeEnabled || !careerLoaded || !state.stageCleared) {
+      return undefined;
+    }
+
+    return (
+      getStageClearCareerHint(translate, careerState, careerResult?.promoted ?? null) ??
+      undefined
+    );
+  }, [
+    careerLoaded,
+    careerResult?.promoted,
+    careerState,
+    settings.careerModeEnabled,
+    state.stageCleared,
+    translate,
+  ]);
 
   const handleDas = useCallback((direction: -1 | 0 | 1) => {
     dispatch({ type: 'DAS', direction });
@@ -593,6 +612,7 @@ export function GameScreen({
                         variant="stageClear"
                         level={state.level}
                         stage={state.stage}
+                        careerHint={stageClearCareerHint}
                         onPrimary={handleNextStage}
                       />
                     ) : null}

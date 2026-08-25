@@ -64,6 +64,7 @@ export type TranslationSchema = {
     highScore: string;
     newHighScore: string;
     stageInfo: string;
+    careerNextChapter: string;
     pauseHint: string;
   };
   accessibility: {
@@ -91,6 +92,7 @@ export type TranslationSchema = {
       subtitle: string;
     };
     progressNext: string;
+    nextStage: string;
     lossKeepsProgress: string;
     noProgressLevel: string;
     homeBadge: string;
@@ -116,6 +118,7 @@ export type TranslationSchema = {
       requirement: string;
       requirementLevel: string;
       progressToNext: string;
+      stagePath: string;
     };
     reset: {
       currentProgress: string;
@@ -208,6 +211,7 @@ export const en: TranslationSchema = {
     highScore: 'Best: {{score}}',
     newHighScore: 'NEW RECORD!',
     stageInfo: 'Level {{level}} · Stage {{stage}}',
+    careerNextChapter: 'Next: {{rank}} · Level {{level}} · Stage {{stage}}',
     pauseHint: 'Tap RESUME or press P / Esc',
   },
   accessibility: {
@@ -235,6 +239,7 @@ export const en: TranslationSchema = {
       subtitle: 'You reached CEO',
     },
     progressNext: 'Next: {{nextRank}} ({{required}} clears)',
+    nextStage: 'Next: Level {{level}} · Stage {{stage}}',
     lossKeepsProgress: '{{rank}} · {{current}}/{{required}} clears — still on track',
     noProgressLevel: 'No promotion credit — need Level {{minLevel}}+',
     homeBadge: '{{rank}} · {{current}}/{{required}}',
@@ -261,6 +266,7 @@ export const en: TranslationSchema = {
       requirement: 'Promotion: {{wins}} clears',
       requirementLevel: 'Promotion: Level {{minLevel}}+ · {{wins}} clears',
       progressToNext: '{{current}}/{{required}} clears → {{nextRank}}',
+      stagePath: 'Path: {{path}}',
     },
     reset: {
       currentProgress: 'Current progress',

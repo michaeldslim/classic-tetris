@@ -8,6 +8,7 @@ export type CareerBarInfo = {
   rankLabel: string;
   progress: number;
   progressHint: string;
+  nextStageLabel?: string;
 };
 
 export type NormalBarStats = {
@@ -68,6 +69,10 @@ function PlayerStatusBarComponent({
               ]}
             />
           </View>
+
+          {career.nextStageLabel ? (
+            <Text style={styles.nextStageLabel}>{career.nextStageLabel}</Text>
+          ) : null}
 
           <Text style={styles.progressHint}>{career.progressHint}</Text>
         </View>
@@ -136,6 +141,12 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
     backgroundColor: theme.accent,
+  },
+  nextStageLabel: {
+    color: theme.text,
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   progressHint: {
     color: theme.textMuted,
