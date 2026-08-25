@@ -553,15 +553,15 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 **작업**
 
-- [ ] `PlayerStatusBar` (career ON) — `getPromotionStagePosition(rank, promotionWins)` → `레벨 N · 스테이지 M` 또는 i18n `career.nextStage`
-- [ ] `GameOverlay` stageClear — 승진 직후 subtitle: “다음: {rank} · L{n} S{m}”
-- [ ] `CareerScreen` 사다리 — 직급별 구체 경로 (예: intern `L1 S1→S3`, assistant `L2 S1→S5 → L3 S1→S2`)
-- [ ] i18n en/ko — `career.nextStage`, `career.stagePath` 등
+- [x] `PlayerStatusBar` (career ON) — `getPromotionStagePosition(rank, promotionWins)` → `레벨 N · 스테이지 M` 또는 i18n `career.nextStage`
+- [x] `GameOverlay` stageClear — 승진 직후 subtitle: “다음: {rank} · L{n} S{m}”
+- [x] `CareerScreen` 사다리 — 직급별 구체 경로 (예: intern `L1 S1→S3`, assistant `L2 S1→S5 → L3 S1→S2`)
+- [x] i18n en/ko — `career.nextStage`, `career.ladder.stagePath`, `overlay.careerNextChapter`
 
 **완료 기준**
 
-- [ ] 인턴 2/3 상태에서 “다음: L1 S3” 표시
-- [ ] 사원 승진 후 “L2 S1”부터 시작한다는 UI 피드백
+- [x] 인턴 2/3 상태에서 “다음: L1 S3” 표시
+- [x] 사원 승진 후 “L2 S1”부터 시작한다는 UI 피드백
 
 **관련 파일**: `PlayerStatusBar.tsx`, `GameOverlay.tsx`, `CareerScreen.tsx`, `careerLabels.ts`, `careerRules.ts`
 
