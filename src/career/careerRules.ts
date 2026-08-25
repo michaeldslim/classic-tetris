@@ -68,6 +68,25 @@ export function getPromotionStagePosition(
   return { level, stage };
 }
 
+/** All campaign positions in order for a rank's promotion track. */
+export function getPromotionStagePath(
+  rank: CareerRank,
+): { level: number; stage: number }[] {
+  const target = getPromotionTarget(rank);
+  if (!target) {
+    return [];
+  }
+
+  const path: { level: number; stage: number }[] = [];
+  for (let index = 0; index < target.requiredWins; index += 1) {
+    const position = getPromotionStagePosition(rank, index);
+    if (position) {
+      path.push(position);
+    }
+  }
+  return path;
+}
+
 export function rankIndex(rank: CareerRank): number {
   return CAREER_RANK_ORDER.indexOf(rank);
 }
