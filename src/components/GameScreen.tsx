@@ -89,7 +89,7 @@ export function GameScreen({
     paused || !active || showPromotionOverlay,
     softDropActiveRef,
   );
-  useGameFeedback(state, lastAction);
+  const { lockPulseKey } = useGameFeedback(state, lastAction);
 
   const modalBlocking =
     showPromotionOverlay ||
@@ -584,6 +584,8 @@ export function GameScreen({
                             active={state.active}
                             ghost={ghostPiece}
                             lineClear={state.lineClear}
+                            stageCleared={state.stageCleared}
+                            lockPulseKey={lockPulseKey}
                           />
                         </SwipeZone>
                       </View>

@@ -14,7 +14,7 @@ import {
   goToCampaignStage,
   spawnNextPiece,
 } from './lifecycle';
-import { LINE_CLEAR_DURATION_MS } from './speed';
+import { getLineClearDuration } from './lineClearFx';
 import type { EngineAction, GameState } from './types';
 
 export {
@@ -39,7 +39,7 @@ export function tick(state: GameState, dt: number): GameState {
   if (state.lineClear) {
     const elapsed = state.lineClear.elapsed + dt;
 
-    if (elapsed >= LINE_CLEAR_DURATION_MS) {
+    if (elapsed >= getLineClearDuration(state.lineClear.rows.length)) {
       return completeLineClear({
         ...state,
         lineClear: { ...state.lineClear, elapsed },

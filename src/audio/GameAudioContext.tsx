@@ -10,11 +10,16 @@ import {
 import { createAudioPlayer, preload, setAudioModeAsync } from 'expo-audio';
 import { registerLockSoundPlayer } from './lockSound';
 import { getBgmSource, SOUND_ASSETS, type SfxId } from './sounds';
+import {
+  getLineClearSfxRate,
+  getLineClearSfxVolumeScale,
+} from '../game/lineClearFx';
 import { levelToVolume } from '../settings/types';
 import { useSettings } from '../settings/SettingsContext';
 
 type GameAudioContextValue = {
   playSfx: (id: SfxId) => void;
+  playLineClearSfx: (lineCount: number) => void;
   setBgmPaused: (paused: boolean) => void;
 };
 
@@ -183,12 +188,36 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     [settings.bgmVolume],
   );
 
+  const playLineClearSfx = useCallback(
+    (lineCount: number) => {
+      if (settings.sfxVolume <= 0) {
+        return;
+      }
+
+      const player = lineMatchedPlayerRef.current;
+      if (!player) {
+        return;
+      }
+
+      const volume =
+        levelToVolume(settings.sfxVolume) *
+        getLineClearSfxVolumeScale(lineCount);
+      player.volume = volume;
+      player.setPlaybackRate(getLineClearSfxRate(lineCount));
+      player.pause();
+      void player.seekTo(0);
+      player.play();
+    },
+    [settings.sfxVolume],
+  );
+
   const value = useMemo(
     () => ({
       playSfx,
+      playLineClearSfx,
       setBgmPaused,
     }),
-    [playSfx, setBgmPaused],
+    [playSfx, playLineClearSfx, setBgmPaused],
   );
 
   return (

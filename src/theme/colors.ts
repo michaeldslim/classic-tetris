@@ -56,3 +56,13 @@ export function getGhostColors(type: TetrominoType): {
     border: hexToRgba(border, GHOST_BORDER_ALPHA),
   };
 }
+
+export const lineClearFlashColors: Record<
+  1 | 2 | 3 | 4,
+  { bright: string; dim: string; border: string }
+> = {
+  1: { bright: '#ffffff', dim: '#b8c0d8', border: theme.accent },
+  2: { bright: '#00F0F0', dim: '#008888', border: '#00A0A0' },
+  3: { bright: '#A000F0', dim: '#600090', border: '#6000A0' },
+  4: { bright: '#f0f000', dim: '#a0a000', border: '#f0f000' },
+};

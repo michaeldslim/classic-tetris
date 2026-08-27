@@ -1,5 +1,5 @@
 import { createInitialState, reduce, tick } from '../src/game/engine';
-import { LINE_CLEAR_DURATION_MS } from '../src/game/speed';
+import { getLineClearDuration } from '../src/game/lineClearFx';
 
 describe('engine line clear', () => {
   it('advances line clear animation via tick and completes', () => {
@@ -10,7 +10,7 @@ describe('engine line clear', () => {
       lineClear: { rows: [14, 15], elapsed: 0 },
     };
 
-    state = tick(state, LINE_CLEAR_DURATION_MS);
+    state = tick(state, getLineClearDuration(2));
 
     expect(state.lineClear).toBeNull();
     expect(state.active).not.toBeNull();

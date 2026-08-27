@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   hapticDrop,
   hapticGameOver,
   hapticLineClear,
+  hapticLock,
   hapticMove,
   hapticRotate,
 } from '../feedback/haptics';
@@ -13,9 +14,11 @@ export function useGameFeedback(
   state: GameState,
   lastAction: GameAction | null,
 ) {
-  const { playSfx } = useGameAudio();
+  const { playSfx, playLineClearSfx } = useGameAudio();
   const prevGameOverRef = useRef(state.gameOver);
   const prevLineClearRef = useRef(state.lineClear);
+  const prevPendingSpawnRef = useRef(state.pendingSpawn);
+  const [lockPulseKey, setLockPulseKey] = useState(0);
 
   useEffect(() => {
     if (!lastAction) {
@@ -52,10 +55,25 @@ export function useGameFeedback(
       state.lineClear !== null && prevLineClearRef.current === null;
 
     if (lockedWithLines && !state.gameOver) {
-      void hapticLineClear(state.lineClear!.rows.length);
-      playSfx('lineMatched');
+      const lineCount = state.lineClear!.rows.length;
+      void hapticLineClear(lineCount);
+      playLineClearSfx(lineCount);
     }
 
     prevLineClearRef.current = state.lineClear;
-  }, [state.lineClear, state.gameOver, playSfx]);
+  }, [state.lineClear, state.gameOver, playLineClearSfx]);
+
+  useEffect(() => {
+    if (
+      state.pendingSpawn &&
+      !prevPendingSpawnRef.current &&
+      state.lineClear === null
+    ) {
+      void hapticLock();
+      setLockPulseKey((key) => key + 1);
+    }
+    prevPendingSpawnRef.current = state.pendingSpawn;
+  }, [state.pendingSpawn, state.lineClear]);
+
+  return { lockPulseKey };
 }

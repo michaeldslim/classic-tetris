@@ -4,9 +4,11 @@ import type { TetrominoType } from '../theme/colors';
 import {
   getGhostColors,
   hexToRgba,
+  lineClearFlashColors,
   theme,
   tetrominoColors,
 } from '../theme/colors';
+import type { LineClearTier } from '../game/lineClearFx';
 
 type CellProps = {
   type: TetrominoType | null;
@@ -14,6 +16,7 @@ type CellProps = {
   ghost?: boolean;
   flashing?: boolean;
   flashBright?: boolean;
+  lineClearTier?: LineClearTier | null;
   showGrid?: boolean;
   checkerLight?: boolean;
 };
@@ -28,6 +31,7 @@ function CellComponent({
   ghost = false,
   flashing = false,
   flashBright = false,
+  lineClearTier = null,
   showGrid = true,
   checkerLight = false,
 }: CellProps) {
@@ -65,6 +69,8 @@ function CellComponent({
   }
 
   if (flashing) {
+    const tier = lineClearTier ?? 1;
+    const flash = lineClearFlashColors[tier];
     return (
       <View
         style={[
@@ -72,8 +78,8 @@ function CellComponent({
           {
             width: size,
             height: size,
-            backgroundColor: flashBright ? '#ffffff' : colors.fill,
-            borderColor: flashBright ? theme.accent : colors.border,
+            backgroundColor: flashBright ? flash.bright : flash.dim,
+            borderColor: flash.border,
           },
         ]}
       />
@@ -147,6 +153,7 @@ export const Cell = memo(CellComponent, (prev, next) =>
   prev.ghost === next.ghost &&
   prev.flashing === next.flashing &&
   prev.flashBright === next.flashBright &&
+  prev.lineClearTier === next.lineClearTier &&
   prev.showGrid === next.showGrid &&
   prev.checkerLight === next.checkerLight,
 );

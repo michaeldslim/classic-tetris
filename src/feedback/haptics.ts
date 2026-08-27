@@ -24,11 +24,23 @@ export function hapticDrop() {
   return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 }
 
+export function hapticLock() {
+  return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+}
+
 export function hapticLineClear(linesCleared: number) {
   if (linesCleared >= 4) {
-    return run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+    return run(() =>
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+    );
   }
-  return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+  if (linesCleared >= 3) {
+    return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+  }
+  if (linesCleared >= 2) {
+    return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+  }
+  return run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 }
 
 export function hapticGameOver() {
