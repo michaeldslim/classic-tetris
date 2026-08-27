@@ -9,6 +9,7 @@ import { MiniBoard } from './MiniBoard';
 type HudPanelProps = {
   stats: GameStats;
   nextPiece: TetrominoType | null;
+  careerMode: boolean;
 };
 
 function StatBlock({
@@ -33,15 +34,21 @@ function StatBlock({
 function HudPanelComponent({
   stats,
   nextPiece,
+  careerMode,
 }: HudPanelProps) {
   const { translate } = useSettings();
 
   return (
     <View style={styles.container}>
       <View style={styles.statsColumn}>
-        <StatBlock label={translate('hud.score')} value={stats.score} />
-        <StatBlock label={translate('hud.level')} value={stats.level} />
-        <StatBlock label={translate('hud.stage')} value={stats.stage} />
+        {careerMode ? (
+          <StatBlock label={translate('hud.score')} value={stats.score} />
+        ) : (
+          <>
+            <StatBlock label={translate('hud.level')} value={stats.level} />
+            <StatBlock label={translate('hud.stage')} value={stats.stage} />
+          </>
+        )}
         <StatBlock
           label={translate('hud.line')}
           value={`${stats.lines}/${stats.lineTarget}`}

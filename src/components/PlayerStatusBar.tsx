@@ -11,41 +11,28 @@ export type CareerBarInfo = {
   nextStageLabel?: string;
 };
 
-export type NormalBarStats = {
-  score: number;
-  level: number;
-  stage: number;
-  lines: number;
-};
-
 type PlayerStatusBarProps = {
   avatarId: AvatarId;
   careerMode: boolean;
   career?: CareerBarInfo;
-  stats?: NormalBarStats;
+  score?: number;
   highScore?: number;
   isPersonalBest?: boolean;
   scoreLabel: string;
   highScoreLabel: string;
   newBestLabel: string;
-  levelLabel: string;
-  stageLabel: string;
-  lineLabel: string;
 };
 
 function PlayerStatusBarComponent({
   avatarId,
   careerMode,
   career,
-  stats,
+  score = 0,
   highScore = 0,
   isPersonalBest = false,
   scoreLabel,
   highScoreLabel,
   newBestLabel,
-  levelLabel,
-  stageLabel,
-  lineLabel,
 }: PlayerStatusBarProps) {
   const progressPercent = career
     ? Math.round(Math.min(1, Math.max(0, career.progress)) * 100)
@@ -76,10 +63,10 @@ function PlayerStatusBarComponent({
 
           <Text style={styles.progressHint}>{career.progressHint}</Text>
         </View>
-      ) : stats ? (
+      ) : (
         <View style={styles.info}>
           <View style={styles.scoreHeaderRow}>
-            <Text style={styles.scoreValue}>{stats.score.toLocaleString()}</Text>
+            <Text style={styles.scoreValue}>{score.toLocaleString()}</Text>
             {isPersonalBest ? (
               <Text style={styles.newBestBadge}>{newBestLabel}</Text>
             ) : null}
@@ -88,12 +75,8 @@ function PlayerStatusBarComponent({
           <Text style={styles.highScoreHint}>
             {highScoreLabel}: {highScore.toLocaleString()}
           </Text>
-          <Text style={styles.statSecondary}>
-            {levelLabel} {stats.level} · {stageLabel} {stats.stage} ·{' '}
-            {lineLabel} {stats.lines}
-          </Text>
         </View>
-      ) : null}
+      )}
     </View>
   );
 }
@@ -187,12 +170,6 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 11,
     fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  statSecondary: {
-    color: theme.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
 });

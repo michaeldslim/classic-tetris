@@ -42,7 +42,7 @@ const BOARD_BORDER = BOARD_FRAME_SIZE;
 const TUTORIAL_GAP = 12;
 const BOTTOM_LIFT = 24;
 
-const TITLE_ROW_HEIGHT = 44;
+const TITLE_ROW_HEIGHT = 40;
 const PROFILE_BAR_HEIGHT = 72;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
@@ -80,7 +80,6 @@ export function GameScreen({
   const runId = useRef(0);
   const recordStageResultRef = useRef(recordStageResult);
   recordStageResultRef.current = recordStageResult;
-  const careerPositionSynced = useRef(false);
   const softDropActiveRef = useRef(false);
   const { state, dispatch } = useGameEngine();
 
@@ -107,6 +106,8 @@ export function GameScreen({
 
   const lineTarget = getStageLineTarget(state.stage);
 
+  const tutorialLayoutHeight = GESTURE_TUTORIAL_HEIGHT + TUTORIAL_GAP;
+
   const fallbackPlayHeight = useMemo(() => {
     const chromeHeight =
       insets.top +
@@ -114,11 +115,15 @@ export function GameScreen({
       TITLE_ROW_HEIGHT +
       PROFILE_BAR_HEIGHT +
       BOTTOM_LIFT +
-      GESTURE_TUTORIAL_HEIGHT +
-      TUTORIAL_GAP +
+      tutorialLayoutHeight +
       24;
     return Math.max(windowHeight - chromeHeight, 320);
-  }, [insets.top, insets.bottom, windowHeight]);
+  }, [
+    insets.top,
+    insets.bottom,
+    tutorialLayoutHeight,
+    windowHeight,
+  ]);
 
   const cellSize = useMemo(() => {
     const sectionWidth =
@@ -130,11 +135,7 @@ export function GameScreen({
         ? playSection.height
         : fallbackPlayHeight;
     const boardWidth = sectionWidth - HUD_WIDTH - PLAY_GAP - BOARD_BORDER;
-    const playAreaHeight =
-      sectionHeight -
-      GESTURE_TUTORIAL_HEIGHT -
-      TUTORIAL_GAP -
-      BOTTOM_LIFT;
+    const playAreaHeight = sectionHeight - tutorialLayoutHeight - BOTTOM_LIFT;
     const boardHeight = playAreaHeight - BOARD_BORDER;
     return computeCellSize(boardWidth, boardHeight);
   }, [
@@ -142,6 +143,7 @@ export function GameScreen({
     playSection.height,
     windowWidth,
     fallbackPlayHeight,
+    tutorialLayoutHeight,
   ]);
 
   const boardOuterWidth = BOARD_WIDTH * cellSize + BOARD_BORDER;
@@ -445,11 +447,15 @@ export function GameScreen({
   ]);
 
   useEffect(() => {
-    if (!careerLoaded || !settings.careerModeEnabled || careerPositionSynced.current) {
+    if (
+      !careerLoaded ||
+      !settings.careerModeEnabled ||
+      state.stageCleared ||
+      showPromotionOverlay
+    ) {
       return;
     }
 
-    careerPositionSynced.current = true;
     const startPosition = getPromotionStagePosition(
       careerState.rank,
       careerState.promotionWins,
@@ -472,8 +478,10 @@ export function GameScreen({
     careerState.rank,
     dispatch,
     settings.careerModeEnabled,
+    showPromotionOverlay,
     state.level,
     state.stage,
+    state.stageCleared,
   ]);
 
   const handleOpenSettings = useCallback(() => {
@@ -513,7 +521,6 @@ export function GameScreen({
           >
             <Text style={styles.iconLabel}>⚙</Text>
           </Pressable>
-          <Text style={styles.title}>{translate('app.title')}</Text>
           <Pressable
             style={styles.iconButton}
             onPress={handlePauseToggle}
@@ -542,20 +549,12 @@ export function GameScreen({
               avatarId={settings.playerAvatarId}
               careerMode={showCareerBar}
               career={careerBar ?? undefined}
-              stats={{
-                score: state.score,
-                level: state.level,
-                stage: state.stage,
-                lines: state.lines,
-              }}
+              score={state.score}
               highScore={showCareerBar ? undefined : scoreRecord.highScore}
               isPersonalBest={!showCareerBar && runSetRecord}
               scoreLabel={translate('profile.score')}
               highScoreLabel={translate('profile.highScore')}
               newBestLabel={translate('profile.newBest')}
-              levelLabel={translate('profile.level')}
-              stageLabel={translate('profile.stage')}
-              lineLabel={translate('profile.line')}
             />
 
             <View
@@ -565,7 +564,7 @@ export function GameScreen({
               <View style={styles.playArea}>
                 <View style={styles.playAreaSpacer} />
 
-                <View style={styles.centerColumn}>
+                <View style={[styles.centerColumn, { gap: TUTORIAL_GAP }]}>
                   <View
                     style={[styles.gameClusterWrap, { width: gameClusterWidth }]}
                   >
@@ -590,6 +589,7 @@ export function GameScreen({
                       </View>
 
                       <HudPanel
+                        careerMode={showCareerBar}
                         stats={{
                           score: state.score,
                           level: state.level,
@@ -680,6 +680,7 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: HORIZONTAL_PADDING,
     marginTop: 4,
     marginBottom: 4,
@@ -698,14 +699,6 @@ const styles = StyleSheet.create({
     color: theme.accent,
     fontSize: 16,
     fontWeight: '700',
-  },
-  title: {
-    flex: 1,
-    color: theme.accent,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 3,
   },
   pauseLabel: {
     color: theme.accent,
@@ -736,7 +729,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centerColumn: {
-    gap: TUTORIAL_GAP,
     alignItems: 'flex-start',
   },
   gameClusterWrap: {
