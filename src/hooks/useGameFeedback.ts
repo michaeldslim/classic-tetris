@@ -70,10 +70,11 @@ export function useGameFeedback(
       state.lineClear === null
     ) {
       void hapticLock();
+      playSfx('dropped');
       setLockPulseKey((key) => key + 1);
     }
     prevPendingSpawnRef.current = state.pendingSpawn;
-  }, [state.pendingSpawn, state.lineClear]);
+  }, [state.pendingSpawn, state.lineClear, playSfx]);
 
   return { lockPulseKey };
 }

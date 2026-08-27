@@ -7,8 +7,8 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
 import { createAudioPlayer, preload, setAudioModeAsync } from 'expo-audio';
-import { registerLockSoundPlayer } from './lockSound';
 import { getBgmSource, SOUND_ASSETS, type SfxId } from './sounds';
 import {
   getLineClearSfxRate,
@@ -24,6 +24,10 @@ type GameAudioContextValue = {
 };
 
 const GameAudioContext = createContext<GameAudioContextValue | null>(null);
+
+const NEEDS_FIRST_LOCK_RETRY =
+  Platform.OS === 'android' &&
+  Platform.constants.Manufacturer.toLowerCase() === 'samsung';
 
 void preload(SOUND_ASSETS.gameOver);
 void preload(SOUND_ASSETS.lineMatched);
@@ -43,8 +47,6 @@ function createSfxPlayer(source: (typeof SOUND_ASSETS)[SfxId]) {
 
 export function GameAudioProvider({ children }: { children: ReactNode }) {
   const { settings } = useSettings();
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
   const bgmPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const droppedPlayerRef = useRef(
     createSfxPlayer(SOUND_ASSETS.dropped),
@@ -56,6 +58,10 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     createSfxPlayer(SOUND_ASSETS.gameOver),
   );
   const bgmPausedRef = useRef(false);
+  const firstLockRetryRef = useRef(NEEDS_FIRST_LOCK_RETRY);
+  const firstLockRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     void setAudioModeAsync({
@@ -82,6 +88,9 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
     const gameOver = gameOverPlayerRef.current;
 
     return () => {
+      if (firstLockRetryTimerRef.current) {
+        clearTimeout(firstLockRetryTimerRef.current);
+      }
       dropped.release();
       lineMatched.release();
       gameOver.release();
@@ -105,31 +114,6 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
 
     player.play();
   }, [settings.bgmTrack, settings.bgmVolume]);
-
-  const playLockSoundSync = useCallback(() => {
-    if (settingsRef.current.sfxVolume <= 0) {
-      return;
-    }
-
-    const player = droppedPlayerRef.current;
-    player.volume = levelToVolume(settingsRef.current.sfxVolume);
-
-    if (player.playing) {
-      player.pause();
-    }
-
-    if (player.currentTime > 0.001) {
-      void player.seekTo(0).then(() => player.play());
-      return;
-    }
-
-    player.play();
-  }, []);
-
-  useEffect(() => {
-    registerLockSoundPlayer(playLockSoundSync);
-    return () => registerLockSoundPlayer(null);
-  }, [playLockSoundSync]);
 
   const playSfx = useCallback(
     (id: SfxId) => {
@@ -166,6 +150,15 @@ export function GameAudioProvider({ children }: { children: ReactNode }) {
       player.pause();
       void player.seekTo(0);
       player.play();
+
+      if (id === 'dropped' && firstLockRetryRef.current) {
+        firstLockRetryRef.current = false;
+        firstLockRetryTimerRef.current = setTimeout(() => {
+          player.pause();
+          void player.seekTo(0).then(() => player.play());
+          firstLockRetryTimerRef.current = null;
+        }, 80);
+      }
     },
     [settings.sfxVolume],
   );
