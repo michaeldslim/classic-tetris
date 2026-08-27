@@ -663,13 +663,14 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ---
 
-## Phase 7 — 버그픽스 / 오디오 폴리시 (다음)
+## Phase 7 — 버그픽스 / 오디오 폴리시 (핵심 버그 수정 완료)
 
-**목표**: cold start(앱 cold launch → START GAME) 후 **첫 번째 테트로미노 착지**부터 `dropped.mp3` lock SFX가 재생되도록 수정.
+**목표**: Galaxy 실기기에서 cold start(앱 cold launch → START GAME) 후 **첫 번째 테트로미노 착지**부터 `dropped.mp3` lock SFX가 재생되도록 수정.
 
-### 알려진 증상
+### 재현 증상
 
-- 앱 cold start 직후 첫 판에서 **1번째 피스 lock** — `dropped.mp3` **무음**
+- **Galaxy 실기기**: 앱 cold start 직후 첫 판에서 **1번째 피스 lock** — `dropped.mp3` **무음**
+- **Pixel 실기기**: 같은 시나리오에서 정상
 - **2번째 lock부터** 정상 재생
 - 이후 판·재시작에서는 대개 정상 (cold start 한정으로 재현되는 경우 많음)
 
@@ -677,33 +678,34 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 | 파일 | 역할 |
 |------|------|
-| `src/hooks/useGameEngine.ts` | lock 시 `shouldPlayLockSound` → `playLockSound()` |
-| `src/audio/lockSound.ts` | `registerLockSoundPlayer` / `playLockSound` 브릿지 |
-| `src/audio/GameAudioContext.tsx` | `playLockSoundSync`, `dropped` player, `preload`, `setAudioModeAsync` |
+| `src/hooks/useGameEngine.ts` | 순수 state reducer dispatch |
+| `src/hooks/useGameFeedback.ts` | committed `pendingSpawn` 전환 후 `playSfx('dropped')` |
+| `src/audio/GameAudioContext.tsx` | dropped player, `playSfx`, `preload`, `setAudioModeAsync` |
 | `src/audio/sounds.ts` | `SOUND_ASSETS.dropped` |
 | `src/game/speed.ts` | `LOCK_SPAWN_DELAY_MS` (450ms — lock SFX 후 spawn 지연) |
 
-### 추정 원인 (가설)
+### 확인된 원인
 
-1. **`registerLockSoundPlayer` 타이밍** — `GameAudioProvider` `useEffect`에서 등록; 첫 lock이 등록 전이면 `playLockSound()` no-op
-2. **오디오 세션 cold start** — `setAudioModeAsync` 비동기 완료 전 첫 `player.play()` 실패/무음
-3. **expo-audio 첫 재생** — `dropped` player 첫 `play()`만 실패; 두 번째부터 `seekTo(0)` 경로로 정상 (`currentTime > 0.001` 분기)
-4. (낮음) 첫 spawn이 `createInitialState` → `spawnNextPiece` 직접 경로라 lock 감지 조건과 어긋남 — 코드상 첫 lock도 `pendingSpawn` 전환으로 감지되어야 함
+1. **React updater 내부 side effect** — `setState(prev => ...)` 안에서 lock SFX를 재생해 commit 전/중복 실행 가능한 경로였음
+2. **Galaxy native playback 차이** — 첫 요청은 MediaSession이 `PLAYING`이어도 실제 `AudioTrack`이 시작되지 않고, 두 번째 요청부터 정상 재생됨 (SM-F731U1 logcat 확인)
 
 ### 작업
 
-- [ ] cold start 재현 시나리오 문서화 (Android / iOS / web)
-- [ ] `GameAudioProvider` mount 시 dropped player **warm-up** (silent priming 또는 `preload` + test play)
-- [ ] `setAudioModeAsync` 완료 후 lock player 등록 / 게임 입력 허용 순서 정리
-- [ ] `playLockSoundSync` 첫 재생 경로 단순화 (`seekTo(0)` 항상 또는 `playing` reset 통일)
-- [ ] (선택) lock SFX 실패 시 dev-only log
+- [x] cold start 재현 시나리오 문서화 — Galaxy 문제 재현, Pixel 정상 (Android 실기기)
+- [x] lock SFX를 reducer updater에서 제거하고 `useGameFeedback`의 committed lock effect로 이동
+- [x] 기존 `GameAudioContext` player·MP3 재생 경로 복원 (Pixel 회귀 제거)
+- [x] silent warm-up / 별도 player / PCM WAV 실험은 Galaxy 미해결 및 Pixel 회귀로 제거
+- [x] Galaxy(`Manufacturer === samsung`)에서 첫 lock 재생만 80ms 후 1회 재시도; Pixel은 단일 재생 유지
 
 ### 완료 기준
 
-- [ ] cold start → START → **첫 피스 lock**에서 `dropped.mp3` audible
+- [x] Galaxy cold start → START → **첫 피스 lock**에서 `dropped.mp3` audible (SM-F731U1 실기기 확인)
+- [x] Pixel cold start → START → **첫 피스 lock**에서 `dropped.mp3` audible (Pixel_10 확인)
 - [ ] 2번째 이후 lock, line clear, game over SFX 회귀 없음
-- [ ] SFX volume 0 일 때 여전히 무음
-- [ ] `npm test` pass
+- [x] SFX volume 0 일 때 여전히 무음
+- [x] `npm test` pass (35 tests)
+
+**실기기 확인일**: 2026-08-27 — Galaxy SM-F731U1 및 Pixel_10 첫 lock SFX 정상.
 
 ---
 
