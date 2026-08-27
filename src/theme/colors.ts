@@ -7,11 +7,18 @@ export const theme = {
   accent: '#f0f000',
   avatarBlue: '#4a6cf0',
   boardBackground: '#0d1636',
-  boardCheckerLight: '#101a3f',
-  boardCheckerDark: '#0a122e',
+  boardBezel: '#080f28',
+  boardBezelBorder: '#1a2048',
+  boardBezelHighlight: '#2a3560',
+  boardCheckerLight: '#111c42',
+  boardCheckerDark: '#09102a',
   cellBorder: '#192448',
+  cellGridSubtle: 'rgba(25, 36, 72, 0.42)',
   ghost: 'rgba(255,255,255,0.15)',
 } as const;
+
+/** Total width/height added around the cell grid (both sides combined). */
+export const BOARD_FRAME_SIZE = 14;
 
 export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
 
@@ -27,3 +34,25 @@ export const tetrominoColors: Record<
   J: { fill: '#0000F0', border: '#0000A0' },
   L: { fill: '#F0A000', border: '#A06000' },
 };
+
+const GHOST_FILL_ALPHA = 0.25;
+const GHOST_BORDER_ALPHA = 0.55;
+
+export function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function getGhostColors(type: TetrominoType): {
+  fill: string;
+  border: string;
+} {
+  const { fill, border } = tetrominoColors[type];
+  return {
+    fill: hexToRgba(fill, GHOST_FILL_ALPHA),
+    border: hexToRgba(border, GHOST_BORDER_ALPHA),
+  };
+}

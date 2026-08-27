@@ -1,7 +1,12 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { TetrominoType } from '../theme/colors';
-import { theme, tetrominoColors } from '../theme/colors';
+import {
+  getGhostColors,
+  hexToRgba,
+  theme,
+  tetrominoColors,
+} from '../theme/colors';
 
 type CellProps = {
   type: TetrominoType | null;
@@ -13,6 +18,10 @@ type CellProps = {
   checkerLight?: boolean;
 };
 
+function bevelInset(size: number): number {
+  return Math.max(1, Math.round(size * 0.14));
+}
+
 function CellComponent({
   type,
   size,
@@ -23,38 +32,112 @@ function CellComponent({
   checkerLight = false,
 }: CellProps) {
   const colors = type ? tetrominoColors[type] : null;
+  const inset = bevelInset(size);
+  const ghostColors = type && ghost ? getGhostColors(type) : null;
 
-  let backgroundColor = checkerLight
-    ? theme.boardCheckerLight
-    : theme.boardCheckerDark;
-  let borderColor = theme.cellBorder;
-
-  if (colors) {
-    if (flashing) {
-      backgroundColor = flashBright ? '#ffffff' : colors.fill;
-      borderColor = flashBright ? theme.accent : colors.border;
-    } else if (ghost) {
-      backgroundColor = theme.ghost;
-      borderColor = colors.border;
-    } else {
-      backgroundColor = colors.fill;
-      borderColor = colors.border;
+  const bevelColors = useMemo(() => {
+    if (!colors || ghost || flashing) {
+      return null;
     }
+    return {
+      highlight: hexToRgba('#ffffff', 0.42),
+      shadow: hexToRgba(colors.border, 0.9),
+    };
+  }, [colors, ghost, flashing]);
+
+  if (!colors) {
+    return (
+      <View
+        style={[
+          styles.emptyCell,
+          {
+            width: size,
+            height: size,
+            backgroundColor: checkerLight
+              ? theme.boardCheckerLight
+              : theme.boardCheckerDark,
+            borderColor: showGrid ? theme.cellBorder : theme.cellGridSubtle,
+            borderWidth: showGrid ? 1 : 0.5,
+          },
+        ]}
+      />
+    );
+  }
+
+  if (flashing) {
+    return (
+      <View
+        style={[
+          styles.blockShell,
+          {
+            width: size,
+            height: size,
+            backgroundColor: flashBright ? '#ffffff' : colors.fill,
+            borderColor: flashBright ? theme.accent : colors.border,
+          },
+        ]}
+      />
+    );
+  }
+
+  if (ghost && ghostColors) {
+    return (
+      <View
+        style={[
+          styles.ghostCell,
+          {
+            width: size,
+            height: size,
+            backgroundColor: ghostColors.fill,
+            borderColor: ghostColors.border,
+          },
+        ]}
+      />
+    );
   }
 
   return (
     <View
       style={[
-        styles.cell,
+        styles.blockShell,
         {
           width: size,
           height: size,
-          backgroundColor,
-          borderColor,
-          borderWidth: showGrid || type ? 1 : 0,
+          borderColor: colors.border,
         },
       ]}
-    />
+    >
+      <View style={[styles.blockFace, { backgroundColor: colors.fill }]}>
+        {bevelColors ? (
+          <>
+            <View
+              style={[
+                styles.bevelHighlightTop,
+                { height: inset, backgroundColor: bevelColors.highlight },
+              ]}
+            />
+            <View
+              style={[
+                styles.bevelHighlightLeft,
+                { width: inset, backgroundColor: bevelColors.highlight },
+              ]}
+            />
+            <View
+              style={[
+                styles.bevelShadowBottom,
+                { height: inset, backgroundColor: bevelColors.shadow },
+              ]}
+            />
+            <View
+              style={[
+                styles.bevelShadowRight,
+                { width: inset, backgroundColor: bevelColors.shadow },
+              ]}
+            />
+          </>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -69,5 +152,39 @@ export const Cell = memo(CellComponent, (prev, next) =>
 );
 
 const styles = StyleSheet.create({
-  cell: {},
+  emptyCell: {},
+  blockShell: {
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  blockFace: {
+    flex: 1,
+  },
+  bevelHighlightTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  bevelHighlightLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+  },
+  bevelShadowBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  bevelShadowRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+  },
+  ghostCell: {
+    borderWidth: 1,
+  },
 });

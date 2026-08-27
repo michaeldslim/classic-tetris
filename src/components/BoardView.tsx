@@ -56,41 +56,43 @@ function BoardViewComponent({
   const ghostType = ghost?.type ?? null;
 
   return (
-    <View style={[styles.board, { borderColor: theme.panelBorder }]}>
-      {Array.from({ length: BOARD_HEIGHT }, (_, y) => (
-        <View key={`row-${y}`} style={styles.row}>
-          {Array.from({ length: BOARD_WIDTH }, (_, x) => {
-            const key = `${x},${y}`;
-            const locked = board[y]?.[x] ?? null;
-            const isActive = activeCells.has(key);
-            const isGhost = ghostCells.has(key) && !isActive && locked === null;
-            const isFlashing = flashingRows.has(y) && locked !== null;
+    <View style={styles.outerBezel}>
+      <View style={styles.innerWell}>
+        {Array.from({ length: BOARD_HEIGHT }, (_, y) => (
+          <View key={`row-${y}`} style={styles.row}>
+            {Array.from({ length: BOARD_WIDTH }, (_, x) => {
+              const key = `${x},${y}`;
+              const locked = board[y]?.[x] ?? null;
+              const isActive = activeCells.has(key);
+              const isGhost = ghostCells.has(key) && !isActive && locked === null;
+              const isFlashing = flashingRows.has(y) && locked !== null;
 
-            let type: BoardCell = locked;
-            let ghostFlag = false;
+              let type: BoardCell = locked;
+              let ghostFlag = false;
 
-            if (isActive && activeType) {
-              type = activeType;
-            } else if (isGhost && ghostType) {
-              type = ghostType;
-              ghostFlag = true;
-            }
+              if (isActive && activeType) {
+                type = activeType;
+              } else if (isGhost && ghostType) {
+                type = ghostType;
+                ghostFlag = true;
+              }
 
-            return (
-              <Cell
-                key={key}
-                type={type}
-                size={cellSize}
-                ghost={ghostFlag}
-                flashing={isFlashing}
-                flashBright={isFlashing && flashBright}
-                showGrid={false}
-                checkerLight={(x + y) % 2 === 0}
-              />
-            );
-          })}
-        </View>
-      ))}
+              return (
+                <Cell
+                  key={key}
+                  type={type}
+                  size={cellSize}
+                  ghost={ghostFlag}
+                  flashing={isFlashing}
+                  flashBright={isFlashing && flashBright}
+                  showGrid={false}
+                  checkerLight={(x + y) % 2 === 0}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -98,9 +100,21 @@ function BoardViewComponent({
 export const BoardView = memo(BoardViewComponent);
 
 const styles = StyleSheet.create({
-  board: {
+  outerBezel: {
+    borderWidth: 3,
+    borderColor: theme.boardBezelBorder,
+    borderRadius: 6,
+    padding: 2,
+    backgroundColor: theme.boardBezel,
+  },
+  innerWell: {
     borderWidth: 2,
+    borderTopColor: '#050a18',
+    borderLeftColor: '#050a18',
+    borderBottomColor: theme.boardBezelHighlight,
+    borderRightColor: theme.boardBezelHighlight,
     backgroundColor: theme.boardBackground,
+    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',

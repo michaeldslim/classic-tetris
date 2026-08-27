@@ -14,6 +14,7 @@ import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
 import { getGhostPiece } from '../game/engine';
 import { getStageLineTarget } from '../game/campaign';
+import { BOARD_FRAME_SIZE } from '../theme/colors';
 import { BOARD_WIDTH, computeCellSize } from '../game/types';
 import type { GameAction } from '../game/types';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -37,7 +38,7 @@ import { HudPanel } from './HudPanel';
 const HORIZONTAL_PADDING = 12;
 const HUD_WIDTH = 72;
 const PLAY_GAP = 8;
-const BOARD_BORDER = 4;
+const BOARD_BORDER = BOARD_FRAME_SIZE;
 const TUTORIAL_GAP = 12;
 const BOTTOM_LIFT = 24;
 
