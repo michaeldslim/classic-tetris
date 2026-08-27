@@ -60,6 +60,13 @@ function AppRoot() {
     setOverlay('settings');
   }, []);
 
+  const handleCareerReset = useCallback(() => {
+    setGameStarted(false);
+    setOverlay('home');
+    setGamePaused(false);
+    setGameOver(false);
+  }, []);
+
   return (
     <View style={styles.root}>
       {gameStarted ? (
@@ -81,7 +88,11 @@ function AppRoot() {
 
       {effectiveOverlay === 'settings' ? (
         <View style={styles.overlay}>
-          <SettingsScreen onBack={handleCloseSettings} onOpenCareer={handleOpenCareer} />
+          <SettingsScreen
+            onBack={handleCloseSettings}
+            onOpenCareer={handleOpenCareer}
+            onCareerReset={handleCareerReset}
+          />
         </View>
       ) : null}
 

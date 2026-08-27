@@ -16,9 +16,14 @@ import { SettingsToggleRow } from './SettingsToggleRow';
 type SettingsScreenProps = {
   onBack: () => void;
   onOpenCareer: () => void;
+  onCareerReset: () => void;
 };
 
-function SettingsScreenComponent({ onBack, onOpenCareer }: SettingsScreenProps) {
+function SettingsScreenComponent({
+  onBack,
+  onOpenCareer,
+  onCareerReset,
+}: SettingsScreenProps) {
   const {
     settings,
     setLanguage,
@@ -47,12 +52,12 @@ function SettingsScreenComponent({ onBack, onOpenCareer }: SettingsScreenProps) 
           text: translate('career.reset.confirm'),
           style: 'destructive',
           onPress: () => {
-            void resetCareerProgress();
+            void resetCareerProgress().then(onCareerReset);
           },
         },
       ],
     );
-  }, [resetCareerProgress, translate]);
+  }, [onCareerReset, resetCareerProgress, translate]);
 
   const languageOptions = [
     { value: 'ko' as AppLanguage, label: translate('language.ko') },
