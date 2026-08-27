@@ -30,7 +30,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **33 tests** (board, bag, scoring, campaign, career, score, engine) |
+| 테스트 | Jest — **35 tests** (board, bag, scoring, campaign, career, score, engine, lineClearFx) |
 
 ### 빌드 & 실행
 
@@ -418,7 +418,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] `expo-haptics` (`src/feedback/haptics.ts`, `useGameFeedback`)
 - [x] 사운드 (`expo-audio`) — BGM1/BGM2, drop/line/game-over SFX (`GameAudioContext`)
 - [x] 키보드 입력 web/dev (`useKeyboardControls`)
-- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **33 tests**)
+- [x] Jest: board, line clear, 7-bag, score, campaign, career, engine (`npm test` — **35 tests**)
 - [x] EAS Build 설정 (`eas.json`)
 - [x] 앱 아이콘 (다크 테트리스 그리드, `#0f0f1a` 배경)
 - [x] Splash screen (`app.json` → `assets/splash-icon.png`, `#0f0f1a`)
@@ -427,7 +427,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 - [x] Pause/Resume/Restart 동작
 - [x] Web 키보드 조작 (←→↓↑/Space/X/Z, P/Esc, R)
-- [x] `npm test` **33 tests** pass
+- [x] `npm test` **35 tests** pass
 
 ---
 
@@ -530,7 +530,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] i18n — `tutorial.softDrop`, `tutorial.hardDrop` (en/ko)
 - [x] 엔진 `SOFT_DROP` 재사용 (1칸 + 1점; 웹 `ArrowDown`과 동일)
 
-### Phase 6b — UI / 게임 스타일 폴리시 (진행 중)
+### Phase 6b — UI / 게임 스타일 폴리시 ✅ (완료)
 
 **목표**: 플레이 체감·정보 명확성·레트로 정체성 강화. 기능 추가보다 **비주얼·피드백·정보 구조** 우선.
 
@@ -538,7 +538,9 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 - Guideline 테트로미노 색 + dark theme 일관 (`theme/colors.ts`)
 - NES bevel 블록, tinted ghost, 베젤 보드 프레임 (6b-2)
-- 라인 클리어 row flash, 승진/업적 Animated overlay
+- HUD/StatusBar 역할 분리, 제스처 튜토리얼 항상 표시 (6b-3)
+- 라인 클리어 tier flash/SFX/haptic, lock bounce, stage glow, gravity dots (6b-4)
+- 승진/업적 Animated overlay
 - `PlayerStatusBar` + `HudPanel` + `GestureTutorial` + haptics/BGM/SFX
 - 커리어 다음 목표 스테이지 UI (`getPromotionStagePosition` + 6b-1)
 
@@ -548,8 +550,8 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 |------|------|-------|------|
 | P1 ✅ | 커리어 “다음 목표 스테이지” UI | 6b-1 | 새 승진 로직과 UI 정합, 혼란 감소 |
 | P2 ✅ | 블록 / 고스트 / 보드 프레임 비주얼 | 6b-2 | 플레이 체감 최대 |
-| P3 | HUD 중복 정리 + 튜토리얼 접기 | 6b-3 | 보드 공간·가독성 |
-| P4 | 라인 클리어 tier 피드백 | 6b-4 | “게임다움” (Single/Triple/Tetris) |
+| P3 ✅ | HUD 중복 정리 + 튜토리얼 | 6b-3 | 보드 공간·가독성 |
+| P4 ✅ | 라인 클리어 tier 피드백 | 6b-4 | “게임다움” (Single/Triple/Tetris) |
 | P5 | HOLD · 테마 · 홈 폴리시 | 6c | 중간 규모 feature |
 
 ---
@@ -596,45 +598,48 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ---
 
-### Phase 6b-3 — 레이아웃 / HUD 정리 (P3)
+### Phase 6b-3 — 레이아웃 / HUD 정리 (P3) ✅ (완료)
 
 **목표**: `PlayerStatusBar` + `HudPanel` 정보 중복 제거, 보드 세로 공간 확보.
 
-**현재 중복**: career OFF 시 바에 score/level/stage/lines + HUD에도 level/stage/lines.
+**구현**: career ON — StatusBar=직급·다음 스테이지, HUD=score·lines/target·next. career OFF — StatusBar=score·하이스코어, HUD=level·stage·lines·next. 게임 타이틀 row 제거(⚙·pause만). **제스처 튜토리얼 항상 표시** (3판 자동 숨김·설정 토글 제거). 커리어 리셋 시 엔진 위치 재동기화 (`getPromotionStagePosition` mismatch → `RESTART`).
 
 **작업**
 
-- [ ] career ON — `PlayerStatusBar`: 직급 + 진행 + **다음 목표 스테이지**; `HudPanel`: score, lines/target, next만
-- [ ] career OFF — `PlayerStatusBar`: score + high score; `HudPanel`: level, stage, lines, next
-- [ ] `GestureTutorial` — 첫 N판 또는 설정 토글 후 숨김; 숨김 시 `GESTURE_TUTORIAL_HEIGHT` 0 → `computeCellSize` 보드 확대
-- [ ] (선택) `GameScreen` title row — 게임 중 타이틀 축소 또는 제거 (아바타 바로 identity)
+- [x] career ON — `PlayerStatusBar`: 직급 + 진행 + **다음 목표 스테이지**; `HudPanel`: score, lines/target, next만
+- [x] career OFF — `PlayerStatusBar`: score + high score; `HudPanel`: level, stage, lines, next
+- [x] `GestureTutorial` — **항상 표시** (자동 숨김/설정 토글 없음)
+- [x] `GameScreen` title row — TETRIS 타이틀 제거 (아바타 바로 identity)
+- [x] (fix) 커리어 초기화 후 엔진 스테이지 불일치 수정
 
 **완료 기준**
 
-- [ ] HUD와 StatusBar에 동일 stat이 2번 안 나옴
-- [ ] 튜토리얼 off 시 보드가 measurably taller
+- [x] HUD와 StatusBar에 동일 stat이 2번 안 나옴
+- [x] 튜토리얼이 모든 판에서 표시됨
 
-**관련 파일**: `GameScreen.tsx`, `PlayerStatusBar.tsx`, `HudPanel.tsx`, `GestureTutorial.tsx`, `settings/types.ts`
+**관련 파일**: `GameScreen.tsx`, `PlayerStatusBar.tsx`, `HudPanel.tsx`, `GestureTutorial.tsx`
 
 ---
 
-### Phase 6b-4 — 게임 feel / 피드백 (P4)
+### Phase 6b-4 — 게임 feel / 피드백 (P4) ✅ (완료)
 
 **목표**: 라인 클리어·락·스테이지 클리어 연출 tier화.
 
+**구현**: `lineClearFx.ts` — 1/2/3/4줄별 flash 색·duration·SFX rate/volume·haptic tier. `BoardView` — lock scale bounce (`lockPulseKey`), stage clear accent glow pulse. `HudPanel` — `getGravityTier` speed dots (●×tier, stage 4+=3, stage 5=5).
+
 **작업**
 
-- [ ] 라인 클리어 — 1/2/3/4줄별 flash 색·duration·SFX 차등 (`lifecycle` linesCleared count 활용)
-- [ ] 블록 lock — 짧은 scale/bounce (active piece lock 시, optional haptic tier)
-- [ ] 스테이지 클리어 — 보드 accent glow pulse 1회
-- [ ] `getGravityTier(stage)` — HUD STG 옆 speed dots (●●●○○) 또는 stage 4+ visual cue
+- [x] 라인 클리어 — 1/2/3/4줄별 flash 색·duration·SFX 차등 (`lineClearFx`, `lineClearFlashColors`)
+- [x] 블록 lock — 짧은 scale bounce + light haptic (`lockPulseKey`, `hapticLock`)
+- [x] 스테이지 클리어 — 보드 accent glow pulse 1회 (`stageCleared` → Animated bezel)
+- [x] `getGravityTier(stage)` — HUD STG/LINE 아래 speed dots
 
 **완료 기준**
 
-- [ ] Tetris(4줄) vs Single(1줄) 체감 차이
-- [ ] 스테이지 4+ 진입 시 난이도 상승이 UI에 표시
+- [x] Tetris(4줄) vs Single(1줄) 체감 차이
+- [x] 스테이지 4+ 진입 시 난이도 상승이 UI에 표시
 
-**관련 파일**: `Cell.tsx`, `BoardView.tsx`, `HudPanel.tsx`, `audio/sounds.ts`, `feedback/haptics.ts`
+**관련 파일**: `lineClearFx.ts`, `Cell.tsx`, `BoardView.tsx`, `HudPanel.tsx`, `GameAudioContext.tsx`, `feedback/haptics.ts`, `useGameFeedback.ts`
 
 ---
 
@@ -721,7 +726,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test                    # 33 tests
+npm test                    # 35 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
