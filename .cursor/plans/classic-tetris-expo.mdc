@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~6 + Phase 7 버그픽스)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~7 + Phase 8 보너스·숨김·회장)
 alwaysApply: false
 ---
 
@@ -14,6 +14,8 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 - **측면 HUD** (점수, 레벨, 스테이지, 라인, NEXT)
 - **스와이프 전용** 컨트롤 (탭 회전 · ←→ 이동 · ↓ 홀드 소프트드롭 · ↓ 스와이프 하드드롭) + 하단 **제스처 튜토리얼**
 - **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
+- **보너스 게임** (Phase 8) — 승진과 무관, 점수 올리기용 중간 미니게임
+- **숨겨진 스테이지 + 회장** (Phase 8) — 승진 구간 사이 잠긴 스테이지, 사장 승진 후 회귀 공략 → 회장 → 전체 클리어 → 리더보드 저장 → 승진 리셋
 - 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
 
 ---
@@ -80,14 +82,20 @@ classic-tetris/
 │   │   ├── actions.ts         # LEFT/RIGHT/ROTATE/HOLD/DAS/gravity step
 │   │   ├── engine.ts          # reduce, tick
 │   │   ├── scoring.ts         # computeLineClearScore
-│   │   └── campaign.ts        # stage line targets, level/stage progression, gravity tier
+│   │   ├── campaign.ts        # stage line targets, level/stage progression, gravity tier
+│   │   └── bonusGame.ts       # (Phase 8) 보너스 미니게임 트리거·규칙·점수 배율
 │   ├── career/
-│   │   ├── types.ts           # CareerRank, CareerState, PromotionResult
-│   │   ├── careerRules.ts     # 8 ranks, sequential stage tracks, startCampaignLevel, getPromotionStagePosition
-│   │   ├── careerProgress.ts  # applyStageResult — validate expected stage, promote, hold on game over
-│   │   ├── careerLabels.ts    # i18n rank labels + progress copy
+│   │   ├── types.ts           # CareerRank (+ chairman), CareerPhase, CareerState, PromotionResult
+│   │   ├── careerRules.ts     # 승진 트랙, startCampaignLevel, getPromotionStagePosition
+│   │   ├── hiddenStages.ts    # (Phase 8) 직급별 숨김 스테이지 정의·경로·난이도
+│   │   ├── careerProgress.ts  # applyStageResult — 승진/숨김/회장 진행, game over 유지
+│   │   ├── careerLabels.ts    # i18n rank labels + progress copy (+ 숨김·회장)
 │   │   ├── careerStorage.ts   # AsyncStorage persist
 │   │   └── CareerProvider.tsx # React context
+│   ├── leaderboard/           # (Phase 8) 회장 클리어 기록
+│   │   ├── types.ts           # LeaderboardEntry (initials, rank, score, clearedAt)
+│   │   ├── leaderboardStorage.ts
+│   │   └── LeaderboardProvider.tsx
 │   ├── score/
 │   │   ├── types.ts           # ScoreRecord, ScoreAchievementId
 │   │   ├── achievements.ts    # 1k–50k score milestones
@@ -113,7 +121,9 @@ classic-tetris/
 │   ├── components/
 │   │   ├── StartScreen.tsx    # 홈 — 아바타, 타이틀, 커리어/하이스코어 배지, Start
 │   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 커리어 모드 토글
-│   │   ├── CareerScreen.tsx   # 직급 트리, 승진 조건, 리셋
+│   │   ├── CareerScreen.tsx   # 직급 트리, 승진·숨김·회장 경로, 리셋
+│   │   ├── LeaderboardScreen.tsx # (Phase 8) 회장 클리어 리더보드
+│   │   ├── BonusGameOverlay.tsx  # (Phase 8) 보너스 게임 진입·결과
 │   │   ├── GameScreen.tsx     # 게임 + 커리어/점수 연동, achievement toast
 │   │   ├── GameOverlay.tsx    # Pause / Game Over / Stage Clear / Campaign Complete
 │   │   ├── PromotionOverlay.tsx # 승진 축하 오버레이
@@ -221,7 +231,7 @@ classic-tetris/
 └─────────────────────────────────────┘
 ```
 
-- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진 진행률; 스테이지 클리어 시 `recordStageResult` (순서 맞는 스테이지만 카운트) → 승진 오버레이; 승진 후 `getPromotionStagePosition`으로 **다음 직급 시작 레벨 · 스테이지 1**; `goToCampaignStage` / `NEXT_STAGE`·`RESTART` with level+stage
+- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진/숨김 진행률; 스테이지 클리어 시 `recordStageResult` (순서 맞는 스테이지만 카운트) → 승진 오버레이; ceo 후 **hidden phase** UI; 승진 후 `getPromotionStagePosition` / `getHiddenStagePosition`으로 다음 목표; `goToCampaignStage` / `NEXT_STAGE`·`RESTART` with level+stage
 - **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어 + NEW BEST; 점수 업적 토스트 (1k–50k)
 - HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
 - `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음**)
@@ -239,9 +249,10 @@ classic-tetris/
 | Home | `!gameStarted` 또는 overlay=`home` | `StartScreen` |
 | Settings | overlay=`settings` | `SettingsScreen` |
 | Career | overlay=`career` (설정에서 진입) | `CareerScreen` |
+| Leaderboard | overlay=`leaderboard` (Phase 8) | `LeaderboardScreen` |
 | Game | `gameStarted && overlay=null` | `GameScreen` |
 
-Provider 순서: `SafeAreaProvider` → `SettingsProvider` → `ScoreProvider` → `CareerProvider` → `GameAudioProvider`
+Provider 순서: `SafeAreaProvider` → `SettingsProvider` → `ScoreProvider` → `CareerProvider` → `LeaderboardProvider` (Phase 8) → `GameAudioProvider`
 
 BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
@@ -492,21 +503,23 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] `profile.ts` 제거 → `career/` + `score/` + `settings/` 로 대체
 - [x] Jest: `career.test.ts`, `score.test.ts`, `engine.test.ts`
 
-### 커리어 직급 (intern → ceo)
+### 커리어 직급 (intern → ceo) — Phase 5 ✅
 
 각 직급은 **정해진 시작 캠페인 레벨**에서 **스테이지 1부터 순서대로** 클리어해야 승진 카운트가 쌓인다. 한 판에 연속 클리어할 필요는 없고, game over 시 `promotionWins` 유지. 승진하면 **다음 직급의 시작 레벨 · 스테이지 1**부터 (`getPromotionStagePosition` + `goToCampaignStage`). 5스테이지 초과 시 다음 캠페인 레벨 S1로 이어짐.
 
 | 승진 | 필요 클리어 | 시작 레벨 | 진행 예시 |
 |------|-------------|-----------|-----------|
-| intern → staff | 3 | 1 | L1 S1→S2→S3 |
-| staff → assistant | 5 | 2 | L2 S1→…→S5 |
-| assistant → manager | 7 | 2 | L2 S1→…→S5 → L3 S1→S2 |
-| manager → deputy | 10 | 2 | L2 전체 → L3 전체 |
-| deputy → director | 5 | 3 | L3 S1→…→S5 |
-| director → executive | 7 | 4 | L4 전체 → L5 S1→S2 |
-| executive → ceo | 5 | 5 | L5 S1→…→S5 |
+| intern → staff (인턴→사원) | 3 | 1 | L1 S1→S2→S3 |
+| staff → assistant (사원→대리) | 5 | 2 | L2 S1→…→S5 |
+| assistant → manager (대리→과장) | 7 | 2 | L2 S1→…→S5 → L3 S1→S2 |
+| manager → deputy (과장→차장) | 10 | 2 | L2 전체 → L3 전체 |
+| deputy → director (차장→부장) | 5 | 3 | L3 S1→…→S5 |
+| director → executive (부장→전무) | 7 | 4 | L4 전체 → L5 S1→S2 |
+| executive → ceo (전무→사장) | 5 | 5 | L5 S1→…→S5 |
 
 구현: `careerRules.ts` (`startCampaignLevel`, `getPromotionStagePosition`), `careerProgress.ts` (expected stage 검증), `GameScreen` (career ON 시 NEXT_STAGE/RESTART에 목표 level+stage 전달).
+
+> **Phase 8 확장**: 사장(ceo) 승진 후 **숨겨진 스테이지 회귀 공략** → **회장(chairman)** 승진 → 전체 클리어. 아래 [Phase 8](#phase-8--보너스-게임--숨겨진-스테이지--회장) 참고.
 
 ### 완료 기준
 
@@ -645,6 +658,7 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 
 ### Phase 6c — 확장 (P5 · 기존 6b 항목)
 
+- [ ] **Phase 8** — 보너스 게임 · 숨김 스테이지 · 회장 · 리더보드 (→ [Phase 8](#phase-8--보너스-게임--숨겨진-스테이지--회장))
 - [ ] **HOLD 재도입** — `GameState` + `HudPanel` MiniBoard + engine + 키보드 `C` (Phase 3에서 제거됨)
 - [ ] **테마** — 라이트/다크 앱 테마; 보드 preset (classic grey/beige vs 현재 avatar blue checker)
 - [ ] **홈 화면** — mini board preview loop; career badge + “승진 현황” shortcut; `@expo/vector-icons`로 ⚙/pause 이모지 대체
@@ -706,6 +720,229 @@ BGM pause: home / settings / career / pause / game over 시 `setBgmPaused(true)`
 - [x] `npm test` pass (35 tests)
 
 **실기기 확인일**: 2026-08-27 — Galaxy SM-F731U1 및 Pixel_10 첫 lock SFX 정상.
+
+---
+
+## Phase 8 — 보너스 게임 · 숨겨진 스테이지 · 회장
+
+**목표**: 커리어 모드에 **점수 전용 보너스 게임**과 **승진 구간 사이 잠긴 숨김 스테이지**를 추가하고, 사장(ceo) 승진 후 숨김 회귀 공략 → **회장(chairman)** → 전체 클리어 → **리더보드 저장** → 승진 리셋 루프를 완성한다.
+
+### 설계 요약
+
+| 요소 | 승진 영향 | 점수 | 언제 |
+|------|-----------|------|------|
+| **승진 스테이지** (기존) | ✅ 카운트 | ✅ | intern → ceo 정상 경로 |
+| **보너스 게임** | ❌ 없음 | ✅ (배율↑) | 게임 중간 랜덤/조건 트리거 |
+| **숨겨진 스테이지** | ❌ 승진 구간과 별도 | ✅ | ceo 달성 **후** 순차 공략 |
+| **회장(chairman)** | 최종 승진 | ✅ | 모든 숨김 클리어 후 |
+
+### 커리어 페이즈 (`CareerPhase`)
+
+```
+promotion  ──(ceo 승진)──►  hidden  ──(전 숨김 클리어)──►  chairman  ──(클리어)──►  reset → promotion
+   │                            │                              │
+   │ intern→staff→…→ceo         │ staff H1→…→ceo H2           │ 리더보드 저장
+   │ (기존 승진 트랙)            │ (13 스테이지)                 │ initials + 회장 + score
+```
+
+- `CareerState` 확장: `phase: 'promotion' | 'hidden' | 'complete'`, `hiddenWins: number`, `hasClearedChairman: boolean`
+- `CareerRank` 확장: `'chairman'` 추가 (9번째·최종 직급)
+- ceo 달성 시 `phase` → `'hidden'`, `hiddenWins` → 0; 숨김 전부 클리어 시 `chairman` 승진 + `phase` → `'complete'`
+- `complete` 후: 리더보드 기록 → 커리어 **승진 리셋** (intern, promotionWins 0, phase `'promotion'`) — `highestRankAchieved`·리더보드 기록은 유지
+
+---
+
+### Phase 8a — 보너스 게임
+
+**목표**: 일반 스테이지 플레이 중 **중간중간** 보너스 미니게임. 승진·숨김 진행과 **완전 분리**, 점수 부스트용.
+
+#### 트리거 (초안 — 구현 시 튜닝)
+
+- 스테이지 클리어 후 **확률** (예: 25%) 또는 N스테이지마다 1회
+- 커리어 OFF(점수 모드)에서도 동일하게 동작 가능
+- 승진 스테이지·숨김 스테이지·보너스 게임 중에는 서로 진행 카운트에 영향 없음
+
+#### 게임플레이 (초안)
+
+- 짧은 변형 규칙 (예: 60초 타이머 / 10줄 목표 / 2× 점수 배율)
+- 클리어·실패 모두 **원래 캠페인 level/stage로 복귀** (승진 wins·hidden wins 불변)
+- 실패해도 game over 아님 — 보너스만 종료
+
+#### 작업
+
+- [ ] `src/game/bonusGame.ts` — 트리거 판정, 보너스 규칙(타이머·배율·목표), `BonusGameState`
+- [ ] `GameState` — `mode: 'campaign' | 'bonus'`, 보너스 종료 시 스냅샷 복원
+- [ ] `BonusGameOverlay.tsx` — 진입 안내, 결과(획득 점수), Continue
+- [ ] `GameScreen` — stage clear 후 보너스 분기; 보너스 중 입력·HUD 분기
+- [ ] i18n — `bonus.title`, `bonus.scoreMultiplier`, `bonus.continue` (en/ko)
+- [ ] Jest — `bonusGame.test.ts` (트리거·점수·진행 불변)
+
+#### 완료 기준
+
+- [ ] 보너스 클리어/실패 후 승진 wins·hidden wins 변화 없음
+- [ ] 보너스에서 획득한 점수만 `GameState.score`에 가산
+- [ ] 보너스 중 game over 시에도 커리어 진행 유지 (선택: 보너스만 종료 vs 일반 game over — **기본: 보너스만 종료**)
+
+**관련 파일**: `bonusGame.ts`, `lifecycle.ts`, `GameScreen.tsx`, `BonusGameOverlay.tsx`, `HudPanel.tsx`
+
+---
+
+### Phase 8b — 숨겨진 스테이지 & 회장 승진
+
+**목표**: 각 승진 구간 **사이**에 잠긴 숨김 스테이지를 두고, **사장(ceo) 정상 승진 후** 사원 구간부터 순서대로 회귀 공략. 마지막 사장 숨김 클리어 → **회장(chairman)** → 전체 클리어.
+
+#### 숨김 스테이지 배치 (직급별)
+
+승진 트랙 **직급 구간마다** 숨김 스테이지가 **잠금** 상태로 표시. 정상 승진 중에는 플레이 불가.
+
+| 직급 (ko) | rank id | 숨김 구간 수 | 난이도 메모 |
+|-----------|---------|-------------|-------------|
+| 사원 | staff | **1** | 기본 |
+| 대리 | assistant | **1** | 기본 |
+| 과장 | manager | **2** | 중간 |
+| 차장 | deputy | **2** | 중간 |
+| 부장 | director | **2** | 중간 |
+| 전무 | executive | **3** | 상 |
+| 사장 | ceo | **2** | **어려움** (높은 gravity tier·라인 목표↑) |
+
+**총 13개** 숨김 스테이지. 회귀 공략 순서:
+
+```
+staff H1 → assistant H1 → manager H1→H2 → deputy H1→H2 → director H1→H2 → executive H1→H2→H3 → ceo H1→H2 → chairman
+```
+
+#### 캠페인 좌표 vs 숨김 ID
+
+- 승진 스테이지: 기존 `(campaignLevel, campaignStage)` 유지
+- 숨김 스테이지: `(rankId, hiddenIndex)` — 예: `{ rank: 'manager', index: 1 }`
+- `hiddenStages.ts` — 직급별 count, `getHiddenStagePath()`, `getHiddenStagePosition(hiddenWins)`, 라인 목표·gravity tier 오버라이드
+- ceo 숨김 2구간: `getGravityTier` max, `STAGE_LINE_TARGETS` 상향 (예: 15·18줄)
+
+#### 진행 규칙
+
+1. **promotion phase** — 기존과 동일. ceo 승진 시 `phase = 'hidden'`, `rank`는 ceo 유지
+2. **hidden phase** — `getHiddenStagePosition(hiddenWins)`만 검증. 클리어 시 `hiddenWins++`. 13/13 → chairman 승진
+3. **chairman** — `phase = 'complete'`. PromotionOverlay + Game Complete 오버레이
+4. **complete 후** — 리더보드 저장 → 커리어 리셋 (intern부터 재시작). `highestRankAchieved = 'chairman'` 유지
+
+#### UI / 사다리
+
+- [ ] `CareerScreen` — 각 직급 노드 아래 **잠긴 숨김** 서브 노드 (🔒 / ceo 전: dimmed, ceo 후: 순차 unlock)
+- [ ] `PlayerStatusBar` — hidden phase: `회장까지 N/13` 또는 `다음: {rank} 숨김 H{k}`
+- [ ] `GameOverlay` stageClear — hidden phase subtitle 구분
+- [ ] `PromotionOverlay` — chairman variant (최종 축하)
+- [ ] i18n — `career.phase.hidden`, `career.ladder.hiddenPath`, `career.chairman`, `overlay.gameComplete`
+
+#### 작업
+
+- [ ] `career/types.ts` — `CareerRank` + `'chairman'`, `CareerPhase`, `CareerState` 필드 확장
+- [ ] `career/hiddenStages.ts` — `HIDDEN_STAGE_COUNTS`, path, position, difficulty overrides
+- [ ] `career/careerRules.ts` — `getNextRank` ceo→chairman; phase별 stage resolver
+- [ ] `career/careerProgress.ts` — `applyStageResult` 분기: promotion / hidden / bonus(no-op)
+- [ ] `career/careerStorage.ts` — migration (v1 → v2 state)
+- [ ] `careerLabels.ts` + en/ko — chairman, hidden labels
+- [ ] `GameScreen` — hidden phase 시 `goToHiddenStage`; expected stage 검증
+- [ ] Jest — `hiddenStages.test.ts`, `career.test.ts` 확장 (ceo→hidden→chairman→reset)
+
+#### 완료 기준
+
+- [ ] ceo 승진 전 숨김 스테이지 선택·클리어 불가
+- [ ] ceo 승진 후 staff H1부터 순서 강제 (건너뛰기 불가)
+- [ ] 숨김 13/13 → chairman 승진 → complete → 리셋
+- [ ] 숨김 클리어가 promotionWins에 영향 없음
+
+**관련 파일**: `hiddenStages.ts`, `careerRules.ts`, `careerProgress.ts`, `CareerScreen.tsx`, `PlayerStatusBar.tsx`, `PromotionOverlay.tsx`
+
+---
+
+### Phase 8c — 회장 리더보드
+
+**목표**: 회장(chairman) 달성·전체 클리어 시 **이니셜 + 회장 직함 + 점수**를 로컬 리더보드에 저장.
+
+#### 데이터
+
+```ts
+type LeaderboardEntry = {
+  id: string;
+  initials: string;       // 3글자 (A–Z)
+  rank: 'chairman';
+  score: number;          // 클리어 시점 누적 점수 (또는 해당 run score — 구현 시 하나로 통일)
+  clearedAt: string;      // ISO timestamp
+};
+```
+
+- AsyncStorage key: `@classic-tetris/leaderboard`
+- 상위 N건 (예: 20) score 내림차순
+- 동일 initials 여러 기록 허용
+
+#### UX
+
+- [ ] chairman 승진 / game complete 오버레이 → **이니셜 입력** (3자, 대문자)
+- [ ] `LeaderboardScreen.tsx` — 홈 또는 Career에서 진입; initials · 회장 · score · 날짜
+- [ ] `LeaderboardProvider.tsx` — `saveEntry`, `getEntries`
+- [ ] `StartScreen` — 회장 클리어 이력 배지 (optional)
+- [ ] i18n — `leaderboard.title`, `leaderboard.initials`, `leaderboard.empty`
+
+#### 작업
+
+- [ ] `src/leaderboard/` 모듈 (types, storage, provider)
+- [ ] `App.tsx` — LeaderboardProvider, overlay nav
+- [ ] Game complete flow — save → reset career → home
+
+#### 완료 기준
+
+- [ ] chairman 클리어 후 initials 입력 없이는 리셋 안 됨 (또는 skip 시 score 미저장 — **기본: 입력 필수**)
+- [ ] 리더보드에 회장 직함·점수 표시
+- [ ] 리셋 후 intern부터 promotion phase 재시작
+
+---
+
+### Phase 8 — 승진 사다리 (전체 · Phase 8 반영)
+
+```
+인턴 ──(3)──► 사원 ──(5)──► 대리 ──(7)──► 과장 ──(10)──► 차장 ──(5)──► 부장 ──(7)──► 전무 ──(5)──► 사장
+              │🔒H×1        │🔒H×1         │🔒H×2          │🔒H×2          │🔒H×2          │🔒H×3          │🔒H×2(난)
+              └─────────────┴───────────────┴────────────────┴────────────────┴────────────────┴────────────────┘
+                                                    ceo 승진 후 ──► 숨김 13개 순차 클리어 ──► 회장 ──► 클리어·리더보드·리셋
+```
+
+| 단계 | rank (en) | ko | 승진 wins | 숨김 (ceo 후) |
+|------|-----------|-----|-----------|---------------|
+| 1 | intern | 인턴 | → staff: 3 | — |
+| 2 | staff | 사원 | → assistant: 5 | H×1 |
+| 3 | assistant | 대리 | → manager: 7 | H×1 |
+| 4 | manager | 과장 | → deputy: 10 | H×2 |
+| 5 | deputy | 차장 | → director: 5 | H×2 |
+| 6 | director | 부장 | → executive: 7 | H×2 |
+| 7 | executive | 전무 | → ceo: 5 | H×3 |
+| 8 | ceo | 사장 | (승진 트랙 종료) | H×2 (hard) |
+| 9 | chairman | 회장 | 숨김 13/13 후 | — |
+
+---
+
+### Phase 8 — 게임 로직 변경 요약
+
+| 모듈 | 변경 |
+|------|------|
+| `game/types.ts` | `GameMode`, bonus snapshot fields |
+| `game/lifecycle.ts` | stage clear → bonus offer; bonus end restore |
+| `game/campaign.ts` | (optional) hidden stage line target helpers |
+| `career/*` | phase, chairman, hidden path, storage migration |
+| `GameScreen.tsx` | promotion / hidden / bonus 분기 |
+| `CareerScreen.tsx` | 잠금·unlock 숨김 노드 |
+| `score/*` | chairman 클리어는 leaderboard로 분리 (하이스코어와 별도) |
+
+### Phase 8 — 테스트 목표
+
+- Jest +15~20 tests: `bonusGame`, `hiddenStages`, career phase transitions, leaderboard sort/limit
+- `npm test` 전체 pass 유지
+
+### Phase 8 — 구현 순서 (권장)
+
+1. **8b-1** — types + `hiddenStages.ts` + career progress (hidden phase only, UI 최소)
+2. **8b-2** — CareerScreen 사다리 + PlayerStatusBar hidden UI
+3. **8c** — chairman + leaderboard + reset flow
+4. **8a** — bonus game (독립 feature, 마지막 또는 병렬)
 
 ---
 
