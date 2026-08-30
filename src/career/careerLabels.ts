@@ -1,12 +1,23 @@
 import type { CareerRank, CareerState } from './types';
 import {
   CAREER_RANK_ORDER,
+  getCareerStageTarget,
   getPromotionStagePath,
   getPromotionStagePosition,
   getPromotionTarget,
   getRequirementToReachRank,
   rankIndex,
 } from './careerRules';
+import {
+  getHiddenStageGlobalIndex,
+  getHiddenStagePathForRank,
+  getHiddenStageStatus,
+  getHiddenStagesForRank,
+  hasHiddenStages,
+  HIDDEN_STAGE_COUNTS,
+  TOTAL_HIDDEN_STAGES,
+  type HiddenStageStatus,
+} from './hiddenStages';
 
 export const CAREER_RANK_KEYS: Record<CareerRank, string> = {
   intern: 'career.rank.intern',
@@ -17,6 +28,7 @@ export const CAREER_RANK_KEYS: Record<CareerRank, string> = {
   director: 'career.rank.director',
   executive: 'career.rank.executive',
   ceo: 'career.rank.ceo',
+  chairman: 'career.rank.chairman',
 };
 
 export function careerRankKey(rank: CareerRank): string {
@@ -24,7 +36,7 @@ export function careerRankKey(rank: CareerRank): string {
 }
 
 export function isMaxCareerRank(state: CareerState): boolean {
-  return getPromotionTarget(state.rank) === null;
+  return state.rank === 'chairman' || state.phase === 'complete';
 }
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -74,9 +86,18 @@ export function getNextStageTargetCopy(
   t: TranslateFn,
   state: CareerState,
 ): string | null {
-  const next = getPromotionStagePosition(state.rank, state.promotionWins);
+  const next = getCareerStageTarget(state);
   if (!next) {
     return null;
+  }
+
+  if (next.isHidden && next.hiddenRank && next.hiddenIndex) {
+    return t('career.nextHiddenStage', {
+      rank: t(careerRankKey(next.hiddenRank)),
+      index: next.hiddenIndex,
+      level: next.level,
+      stage: next.stage,
+    });
   }
 
   return t('career.nextStage', {
@@ -97,14 +118,55 @@ export function getPromotionStagePathCopy(
   return t('career.ladder.stagePath', { path });
 }
 
+export function getHiddenStagePathCopy(
+  t: TranslateFn,
+  rank: CareerRank,
+): string | null {
+  if (!hasHiddenStages(rank)) {
+    return null;
+  }
+
+  const path = getHiddenStagePathForRank(rank);
+  return t('career.ladder.hiddenPath', { path });
+}
+
 export function getStageClearCareerHint(
   t: TranslateFn,
   state: CareerState,
   promotedRank: CareerRank | null,
 ): string | null {
-  const next = getPromotionStagePosition(state.rank, state.promotionWins);
+  const next = getCareerStageTarget(state);
   if (!next) {
     return null;
+  }
+
+  if (promotedRank === 'chairman') {
+    return t('career.chairmanReached.subtitle');
+  }
+
+  if (promotedRank === 'ceo') {
+    const firstHidden = getCareerStageTarget({
+      ...state,
+      phase: 'hidden',
+      hiddenWins: 0,
+    });
+    if (firstHidden?.isHidden && firstHidden.hiddenRank && firstHidden.hiddenIndex) {
+      return t('career.ceoHiddenHint', {
+        rank: t(careerRankKey(firstHidden.hiddenRank)),
+        index: firstHidden.hiddenIndex,
+        level: firstHidden.level,
+        stage: firstHidden.stage,
+      });
+    }
+  }
+
+  if (next.isHidden && next.hiddenRank && next.hiddenIndex) {
+    return t('career.nextHiddenStage', {
+      rank: t(careerRankKey(next.hiddenRank)),
+      index: next.hiddenIndex,
+      level: next.level,
+      stage: next.stage,
+    });
   }
 
   if (promotedRank) {
@@ -131,6 +193,33 @@ export function getCareerProgressCopy(
   progress: number;
 } {
   const rankLabel = t(careerRankKey(state.rank));
+
+  if (state.phase === 'complete' || state.rank === 'chairman') {
+    return {
+      primary: t('career.maxRank', { rank: t(careerRankKey('chairman')) }),
+      progress: 1,
+    };
+  }
+
+  if (state.phase === 'hidden') {
+    const progress =
+      TOTAL_HIDDEN_STAGES > 0 ? state.hiddenWins / TOTAL_HIDDEN_STAGES : 0;
+
+    return {
+      primary: t('career.hiddenBadge', {
+        rank: rankLabel,
+        current: state.hiddenWins,
+        required: TOTAL_HIDDEN_STAGES,
+      }),
+      secondary: t('career.hiddenProgressNext', {
+        nextRank: t(careerRankKey('chairman')),
+        required: TOTAL_HIDDEN_STAGES,
+      }),
+      nextStage: getNextStageTargetCopy(t, state) ?? undefined,
+      progress,
+    };
+  }
+
   const target = getPromotionTarget(state.rank);
 
   if (!target) {
@@ -179,13 +268,45 @@ export function getPromotionRequirementCopy(
   return pathCopy ? `${winsCopy} · ${pathCopy}` : winsCopy;
 }
 
+export function getHiddenStageRequirementCopy(
+  t: TranslateFn,
+  rank: CareerRank,
+): string | null {
+  if (!hasHiddenStages(rank)) {
+    return null;
+  }
+
+  const count = HIDDEN_STAGE_COUNTS[rank];
+  const pathCopy = getHiddenStagePathCopy(t, rank);
+
+  const requirement = t('career.ladder.hiddenRequirement', { count });
+  return pathCopy ? `${requirement} · ${pathCopy}` : requirement;
+}
+
 export function getCareerLadderDetailCopy(
   t: TranslateFn,
   state: CareerState,
   rank: CareerRank,
   status: CareerLadderStatus,
 ): string {
+  if (rank === 'chairman') {
+    if (status === 'achieved') {
+      return t('career.ladder.chairmanAchieved');
+    }
+    return t('career.ladder.chairmanRequirement');
+  }
+
   if (status === 'current') {
+    if (state.phase === 'hidden') {
+      const progress = t('career.ladder.hiddenProgressToChairman', {
+        current: state.hiddenWins,
+        required: TOTAL_HIDDEN_STAGES,
+        nextRank: t(careerRankKey('chairman')),
+      });
+      const nextStage = getNextStageTargetCopy(t, state);
+      return nextStage ? `${progress} · ${nextStage}` : progress;
+    }
+
     const target = getPromotionTarget(state.rank);
     if (!target) {
       return t('career.maxRank', { rank: t(careerRankKey(rank)) });
@@ -204,7 +325,14 @@ export function getCareerLadderDetailCopy(
     return t('career.ladder.startingRank');
   }
 
-  return getPromotionRequirementCopy(t, rank) ?? '';
+  const promotionCopy = getPromotionRequirementCopy(t, rank);
+  const hiddenCopy = getHiddenStageRequirementCopy(t, rank);
+
+  if (promotionCopy && hiddenCopy) {
+    return `${promotionCopy}\n${hiddenCopy}`;
+  }
+
+  return promotionCopy ?? hiddenCopy ?? '';
 }
 
 export type CareerLadderStatus = 'achieved' | 'current' | 'locked';
@@ -213,8 +341,29 @@ export function getCareerLadderStatus(
   state: CareerState,
   rank: CareerRank,
 ): CareerLadderStatus {
+  if (rank === 'chairman') {
+    if (state.rank === 'chairman' || state.phase === 'complete') {
+      return 'achieved';
+    }
+    return 'locked';
+  }
+
   const currentIndex = rankIndex(state.rank);
   const rowIndex = rankIndex(rank);
+
+  if (state.phase === 'hidden') {
+    if (rowIndex < currentIndex) {
+      return 'achieved';
+    }
+    if (rowIndex === currentIndex) {
+      return 'current';
+    }
+    return 'locked';
+  }
+
+  if (state.phase === 'complete') {
+    return rowIndex <= rankIndex('chairman') ? 'achieved' : 'locked';
+  }
 
   if (rowIndex < currentIndex) {
     return 'achieved';
@@ -227,6 +376,54 @@ export function getCareerLadderStatus(
   return 'locked';
 }
 
+export function getHiddenStageLadderStatus(
+  state: CareerState,
+  rank: CareerRank,
+  hiddenIndex: number,
+): HiddenStageStatus {
+  if (!hasHiddenStages(rank)) {
+    return 'locked';
+  }
+
+  const globalIndex = getHiddenStageGlobalIndex(rank, hiddenIndex);
+  if (globalIndex < 0) {
+    return 'locked';
+  }
+
+  return getHiddenStageStatus(state.hiddenWins, state.phase, globalIndex);
+}
+
+export function getHiddenStageLadderLabel(
+  t: TranslateFn,
+  rank: CareerRank,
+  hiddenIndex: number,
+  status: HiddenStageStatus,
+): string {
+  const rankLabel = t(careerRankKey(rank));
+  const stageLabel = t('career.ladder.hiddenStageLabel', {
+    rank: rankLabel,
+    index: hiddenIndex,
+  });
+
+  if (status === 'achieved') {
+    return `${stageLabel} · ${t('career.ladder.achieved')}`;
+  }
+  if (status === 'current') {
+    return `${stageLabel} · ${t('career.ladder.current')}`;
+  }
+  return `${stageLabel} · ${t('career.ladder.hiddenLocked')}`;
+}
+
 export function getCareerLadderRows(): CareerRank[] {
   return [...CAREER_RANK_ORDER].reverse();
 }
+
+export function getHiddenStagesForLadderRank(rank: CareerRank): number[] {
+  if (!hasHiddenStages(rank)) {
+    return [];
+  }
+
+  return getHiddenStagesForRank(rank).map((stage) => stage.index);
+}
+
+export { getPromotionStagePosition };

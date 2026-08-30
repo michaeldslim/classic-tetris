@@ -84,6 +84,7 @@ export const ko: TranslationSchema = {
       director: '부장',
       executive: '전무',
       ceo: '사장',
+      chairman: '회장',
     },
     promoted: {
       title: '승진합니다!',
@@ -91,10 +92,18 @@ export const ko: TranslationSchema = {
     },
     ceoReached: {
       title: '축하합니다!',
-      subtitle: '사장이 되었습니다',
+      subtitle: '사장이 되었습니다 — 숨겨진 스테이지 공략을 시작합니다',
+    },
+    chairmanReached: {
+      title: '전체 클리어!',
+      subtitle: '회장으로 승진했습니다',
     },
     progressNext: '다음: {{nextRank}} ({{required}}클리어)',
     nextStage: '다음: 레벨 {{level}} · 스테이지 {{stage}}',
+    nextHiddenStage: '다음 숨김: {{rank}} H{{index}} · L{{level}} S{{stage}}',
+    hiddenBadge: '{{rank}} · 숨김 {{current}}/{{required}}',
+    hiddenProgressNext: '목표: {{nextRank}} (숨김 {{required}}클리어)',
+    ceoHiddenHint: '다음 숨김: {{rank}} H{{index}} · L{{level}} S{{stage}}',
     lossKeepsProgress: '{{rank}} · {{current}}/{{required}}클리어 — 진행 유지',
     noProgressLevel: '승진 카운트 없음 — 레벨 {{minLevel}} 이상 필요',
     homeBadge: '{{rank}} · {{current}}/{{required}}',
@@ -102,7 +111,7 @@ export const ko: TranslationSchema = {
     modeLabel: '승진 모드',
     modeDesc: '스테이지 클리어로 직급을 올립니다',
     rulesSnippet:
-      '인턴에서 시작해 정해진 레벨·스테이지를 순서대로 클리어하면 직급이 올라갑니다. 한 번에 연속으로 클리어할 필요는 없고, 게임 오버해도 진행은 유지됩니다. 승진하면 다음 직급의 시작 레벨·스테이지 1부터 이어집니다.',
+      '인턴에서 시작해 정해진 레벨·스테이지를 순서대로 클리어하면 직급이 올라갑니다. 사장 승진 후에는 각 직급의 숨겨진 스테이지를 순서대로 공략해 회장에 도전합니다. 게임 오버해도 진행은 유지됩니다.',
     campaignLevel: '레벨 {{level}}',
     screen: {
       title: '승진 현황',
@@ -121,7 +130,14 @@ export const ko: TranslationSchema = {
       requirement: '승진 조건: {{wins}}클리어',
       requirementLevel: '승진 조건: 레벨 {{minLevel}}+ · {{wins}}클리어',
       progressToNext: '{{current}}/{{required}}클리어 → {{nextRank}}',
+      hiddenProgressToChairman: '숨김 {{current}}/{{required}} → {{nextRank}}',
       stagePath: '경로: {{path}}',
+      hiddenPath: '숨김: {{path}}',
+      hiddenRequirement: '숨김 {{count}}구간 (사장 승진 후)',
+      hiddenStageLabel: '{{rank}} 숨김 H{{index}}',
+      hiddenLocked: '잠김',
+      chairmanRequirement: '숨김 13구간 클리어 후 승진',
+      chairmanAchieved: '최종 직급 달성',
     },
     reset: {
       currentProgress: '현재 진행',

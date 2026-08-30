@@ -82,6 +82,7 @@ export type TranslationSchema = {
       director: string;
       executive: string;
       ceo: string;
+      chairman: string;
     };
     promoted: {
       title: string;
@@ -91,8 +92,16 @@ export type TranslationSchema = {
       title: string;
       subtitle: string;
     };
+    chairmanReached: {
+      title: string;
+      subtitle: string;
+    };
     progressNext: string;
     nextStage: string;
+    nextHiddenStage: string;
+    hiddenBadge: string;
+    hiddenProgressNext: string;
+    ceoHiddenHint: string;
     lossKeepsProgress: string;
     noProgressLevel: string;
     homeBadge: string;
@@ -118,7 +127,14 @@ export type TranslationSchema = {
       requirement: string;
       requirementLevel: string;
       progressToNext: string;
+      hiddenProgressToChairman: string;
       stagePath: string;
+      hiddenPath: string;
+      hiddenRequirement: string;
+      hiddenStageLabel: string;
+      hiddenLocked: string;
+      chairmanRequirement: string;
+      chairmanAchieved: string;
     };
     reset: {
       currentProgress: string;
@@ -229,6 +245,7 @@ export const en: TranslationSchema = {
       director: 'Director',
       executive: 'Executive',
       ceo: 'CEO',
+      chairman: 'Chairman',
     },
     promoted: {
       title: 'Promoted!',
@@ -236,10 +253,18 @@ export const en: TranslationSchema = {
     },
     ceoReached: {
       title: 'Congratulations!',
-      subtitle: 'You reached CEO',
+      subtitle: 'You reached CEO — hidden stages await',
+    },
+    chairmanReached: {
+      title: 'Game complete!',
+      subtitle: 'You are now Chairman',
     },
     progressNext: 'Next: {{nextRank}} ({{required}} clears)',
     nextStage: 'Next: Level {{level}} · Stage {{stage}}',
+    nextHiddenStage: 'Next hidden: {{rank}} H{{index}} · L{{level}} S{{stage}}',
+    hiddenBadge: '{{rank}} · Hidden {{current}}/{{required}}',
+    hiddenProgressNext: 'Goal: {{nextRank}} ({{required}} hidden clears)',
+    ceoHiddenHint: 'Next hidden: {{rank}} H{{index}} · L{{level}} S{{stage}}',
     lossKeepsProgress: '{{rank}} · {{current}}/{{required}} clears — still on track',
     noProgressLevel: 'No promotion credit — need Level {{minLevel}}+',
     homeBadge: '{{rank}} · {{current}}/{{required}}',
@@ -247,7 +272,7 @@ export const en: TranslationSchema = {
     modeLabel: 'Career mode',
     modeDesc: 'Climb ranks by clearing stages',
     rulesSnippet:
-      'Start as an Intern and clear stages in order at each rank’s campaign level. You do not need to clear them in one run — game overs keep your progress. After a promotion, the next rank starts at its level · stage 1.',
+      'Start as an Intern and clear stages in order to climb ranks. After reaching CEO, unlock hidden stages rank by rank to become Chairman. Game overs keep your progress.',
     campaignLevel: 'Level {{level}}',
     screen: {
       title: 'Career progress',
@@ -266,7 +291,14 @@ export const en: TranslationSchema = {
       requirement: 'Promotion: {{wins}} clears',
       requirementLevel: 'Promotion: Level {{minLevel}}+ · {{wins}} clears',
       progressToNext: '{{current}}/{{required}} clears → {{nextRank}}',
+      hiddenProgressToChairman: 'Hidden {{current}}/{{required}} → {{nextRank}}',
       stagePath: 'Path: {{path}}',
+      hiddenPath: 'Hidden: {{path}}',
+      hiddenRequirement: 'Hidden ×{{count}} (after CEO)',
+      hiddenStageLabel: '{{rank}} Hidden H{{index}}',
+      hiddenLocked: 'Locked',
+      chairmanRequirement: 'Clear all 13 hidden stages',
+      chairmanAchieved: 'Final rank achieved',
     },
     reset: {
       currentProgress: 'Current progress',
