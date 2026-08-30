@@ -1,5 +1,6 @@
 import { STAGES_PER_LEVEL } from '../game/campaign';
-import type { CareerRank, PromotionTarget } from './types';
+import { getHiddenStagePosition } from './hiddenStages';
+import type { CareerRank, CareerStageTarget, CareerState, PromotionTarget } from './types';
 
 export const CAREER_RANK_ORDER: CareerRank[] = [
   'intern',
@@ -10,6 +11,7 @@ export const CAREER_RANK_ORDER: CareerRank[] = [
   'director',
   'executive',
   'ceo',
+  'chairman',
 ];
 
 const PROMOTION_RULES: Partial<
@@ -102,4 +104,26 @@ export function getRequirementToReachRank(rank: CareerRank): PromotionTarget | n
 
 export function isHigherRank(left: CareerRank, right: CareerRank): boolean {
   return rankIndex(left) > rankIndex(right);
+}
+
+/** Next playable campaign position for the current career state. */
+export function getCareerStageTarget(state: CareerState): CareerStageTarget | null {
+  if (state.phase === 'complete') {
+    return null;
+  }
+
+  if (state.phase === 'hidden') {
+    return getHiddenStagePosition(state.hiddenWins);
+  }
+
+  const promotion = getPromotionStagePosition(state.rank, state.promotionWins);
+  if (!promotion) {
+    return null;
+  }
+
+  return promotion;
+}
+
+export function isChairmanRank(rank: CareerRank): boolean {
+  return rank === 'chairman';
 }

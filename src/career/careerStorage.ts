@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_CAREER_STATE } from './careerProgress';
 import { CAREER_RANK_ORDER } from './careerRules';
-import type { CareerRank, CareerState } from './types';
+import type { CareerPhase, CareerRank, CareerState } from './types';
 
 const STORAGE_KEY = '@classic-tetris/career';
 
@@ -9,12 +9,28 @@ function isCareerRank(value: unknown): value is CareerRank {
   return typeof value === 'string' && CAREER_RANK_ORDER.includes(value as CareerRank);
 }
 
-function resolvePromotionWins(value: unknown): number {
+function isCareerPhase(value: unknown): value is CareerPhase {
+  return value === 'promotion' || value === 'hidden' || value === 'complete';
+}
+
+function resolveNonNegativeInt(value: unknown): number {
   if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
     return 0;
   }
 
   return Math.floor(value);
+}
+
+function migrateLegacyCeoState(state: CareerState): CareerState {
+  if (state.rank === 'ceo' && state.phase === 'promotion') {
+    return {
+      ...state,
+      phase: 'hidden',
+      hiddenWins: 0,
+    };
+  }
+
+  return state;
 }
 
 export function parseCareerState(raw: string | null): CareerState {
@@ -28,12 +44,16 @@ export function parseCareerState(raw: string | null): CareerState {
     const highestRankAchieved = isCareerRank(parsed.highestRankAchieved)
       ? parsed.highestRankAchieved
       : rank;
+    const phase = isCareerPhase(parsed.phase) ? parsed.phase : 'promotion';
+    const hiddenWins = resolveNonNegativeInt(parsed.hiddenWins);
 
-    return {
+    return migrateLegacyCeoState({
       rank,
-      promotionWins: resolvePromotionWins(parsed.promotionWins),
+      promotionWins: resolveNonNegativeInt(parsed.promotionWins),
       highestRankAchieved,
-    };
+      phase,
+      hiddenWins,
+    });
   } catch {
     return DEFAULT_CAREER_STATE;
   }
