@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCareerProgressCopy } from '../career/careerLabels';
 import { useCareer } from '../career/CareerProvider';
+import { useLeaderboard } from '../leaderboard/LeaderboardProvider';
 import { useScore } from '../score/ScoreProvider';
 import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
@@ -11,12 +12,14 @@ import { PlayerAvatar } from './PlayerAvatar';
 type StartScreenProps = {
   onStart: () => void;
   onOpenSettings: () => void;
+  onOpenLeaderboard: () => void;
 };
 
-function StartScreenComponent({ onStart, onOpenSettings }: StartScreenProps) {
+function StartScreenComponent({ onStart, onOpenSettings, onOpenLeaderboard }: StartScreenProps) {
   const { settings, translate } = useSettings();
   const { careerState, loaded: careerLoaded } = useCareer();
   const { scoreRecord, loaded: scoreLoaded } = useScore();
+  const { leaderboard, loaded: leaderboardLoaded } = useLeaderboard();
 
   const careerBadge =
     settings.careerModeEnabled && careerLoaded
@@ -27,6 +30,13 @@ function StartScreenComponent({ onStart, onOpenSettings }: StartScreenProps) {
     !settings.careerModeEnabled && scoreLoaded && scoreRecord.highScore > 0
       ? translate('home.highScore', {
           score: scoreRecord.highScore.toLocaleString(),
+        })
+      : null;
+
+  const leaderboardBadge =
+    leaderboardLoaded && leaderboard.entries.length > 0
+      ? translate('home.leaderboardBadge', {
+          count: leaderboard.entries.length,
         })
       : null;
 
@@ -47,6 +57,15 @@ function StartScreenComponent({ onStart, onOpenSettings }: StartScreenProps) {
           <Text style={styles.title}>{translate('app.title')}</Text>
           {careerBadge ? <Text style={styles.careerBadge}>{careerBadge}</Text> : null}
           {highScoreBadge ? <Text style={styles.highScoreBadge}>{highScoreBadge}</Text> : null}
+          {leaderboardBadge ? (
+            <Pressable
+              onPress={onOpenLeaderboard}
+              accessibilityRole="button"
+              accessibilityLabel={translate('leaderboard.title')}
+            >
+              <Text style={styles.leaderboardBadge}>{leaderboardBadge}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Pressable
@@ -114,6 +133,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.4,
+  },
+  leaderboardBadge: {
+    color: '#f0c000',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textDecorationLine: 'underline',
   },
   startButton: {
     alignSelf: 'stretch',

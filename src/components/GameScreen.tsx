@@ -24,11 +24,13 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { useSettings } from '../settings/SettingsContext';
 import { achievementKey } from '../score/achievements';
+import { useLeaderboard } from '../leaderboard/LeaderboardProvider';
 import { useScore } from '../score/ScoreProvider';
 import type { ScoreAchievementId } from '../score/types';
 import { theme } from '../theme/colors';
 import { AchievementToast } from './AchievementToast';
 import { BoardView } from './BoardView';
+import { ChairmanSaveOverlay } from './ChairmanSaveOverlay';
 import { GameOverlay } from './GameOverlay';
 import { GestureTutorial, GESTURE_TUTORIAL_HEIGHT } from './GestureTutorial';
 import { PlayerStatusBar } from './PlayerStatusBar';
@@ -79,6 +81,7 @@ export function GameScreen({
   const { careerState, loaded: careerLoaded, recordStageResult, finalizeChairmanClear } =
     useCareer();
   const { scoreRecord, updateScoreProgress } = useScore();
+  const { saveChairmanEntry } = useLeaderboard();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [playSection, setPlaySection] = useState({ width: 0, height: 0 });
@@ -86,6 +89,8 @@ export function GameScreen({
   const [lastAction, setLastAction] = useState<GameAction | null>(null);
   const [careerResult, setCareerResult] = useState<PromotionResult | null>(null);
   const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
+  const [showChairmanSaveOverlay, setShowChairmanSaveOverlay] = useState(false);
+  const [chairmanSaveScore, setChairmanSaveScore] = useState(0);
   const [gameOverRestartReady, setGameOverRestartReady] = useState(false);
   const [achievementQueue, setAchievementQueue] = useState<ScoreAchievementId[]>([]);
   const [activeAchievement, setActiveAchievement] = useState<ScoreAchievementId | null>(null);
@@ -102,13 +107,14 @@ export function GameScreen({
   useGameLoop(
     state,
     dispatch,
-    paused || !active || showPromotionOverlay,
+    paused || !active || showPromotionOverlay || showChairmanSaveOverlay,
     softDropActiveRef,
   );
   const { lockPulseKey } = useGameFeedback(state, lastAction);
 
   const modalBlocking =
     showPromotionOverlay ||
+    showChairmanSaveOverlay ||
     state.gameOver ||
     state.stageCleared ||
     state.campaignComplete;
@@ -254,6 +260,7 @@ export function GameScreen({
     recordedGameOverRun.current = null;
     recordedStageKey.current = null;
     setShowPromotionOverlay(false);
+    setShowChairmanSaveOverlay(false);
     setPaused(false);
     setGameOverRestartReady(false);
   }, []);
@@ -385,10 +392,34 @@ export function GameScreen({
 
   const handlePromotionComplete = useCallback(() => {
     if (careerResult?.promoted === 'chairman') {
-      void finalizeChairmanClear();
+      setChairmanSaveScore(state.score);
+      setShowPromotionOverlay(false);
+      setShowChairmanSaveOverlay(true);
+      return;
     }
     setShowPromotionOverlay(false);
-  }, [careerResult?.promoted, finalizeChairmanClear]);
+  }, [careerResult?.promoted, state.score]);
+
+  const handleChairmanSave = useCallback(
+    (initials: string) => {
+      void saveChairmanEntry({
+        initials,
+        score: chairmanSaveScore,
+        avatarId: settings.playerAvatarId,
+      }).then((saved) => {
+        if (saved) {
+          void finalizeChairmanClear();
+          setShowChairmanSaveOverlay(false);
+        }
+      });
+    },
+    [
+      chairmanSaveScore,
+      finalizeChairmanClear,
+      saveChairmanEntry,
+      settings.playerAvatarId,
+    ],
+  );
 
   useEffect(() => {
     if (
@@ -457,7 +488,8 @@ export function GameScreen({
       !careerLoaded ||
       !settings.careerModeEnabled ||
       state.stageCleared ||
-      showPromotionOverlay
+      showPromotionOverlay ||
+      showChairmanSaveOverlay
     ) {
       return;
     }
@@ -482,6 +514,7 @@ export function GameScreen({
     dispatch,
     settings.careerModeEnabled,
     showPromotionOverlay,
+    showChairmanSaveOverlay,
     state.gravityTierOverride,
     state.level,
     state.stage,
@@ -620,7 +653,7 @@ export function GameScreen({
                         onSecondary={handleRetryStage}
                       />
                     ) : null}
-                    {state.stageCleared && !showPromotionOverlay ? (
+                    {state.stageCleared && !showPromotionOverlay && !showChairmanSaveOverlay ? (
                       <GameOverlay
                         variant="stageClear"
                         level={state.level}
@@ -656,6 +689,12 @@ export function GameScreen({
                       isChairman={isChairmanPromotion}
                       playerAvatarId={settings.playerAvatarId}
                       onComplete={handlePromotionComplete}
+                    />
+                    <ChairmanSaveOverlay
+                      visible={showChairmanSaveOverlay}
+                      score={chairmanSaveScore}
+                      playerAvatarId={settings.playerAvatarId}
+                      onSave={handleChairmanSave}
                     />
                   </View>
 

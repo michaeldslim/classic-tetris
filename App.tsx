@@ -4,15 +4,17 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GameAudioProvider, useGameAudio } from './src/audio/GameAudioContext';
 import { CareerProvider } from './src/career/CareerProvider';
+import { LeaderboardProvider } from './src/leaderboard/LeaderboardProvider';
 import { ScoreProvider } from './src/score/ScoreProvider';
 import { CareerScreen } from './src/components/CareerScreen';
 import { GameScreen } from './src/components/GameScreen';
+import { LeaderboardScreen } from './src/components/LeaderboardScreen';
 import { SettingsScreen } from './src/components/SettingsScreen';
 import { StartScreen } from './src/components/StartScreen';
 import { SettingsProvider } from './src/settings/SettingsContext';
 import { theme } from './src/theme/colors';
 
-type OverlayScreen = 'home' | 'settings' | 'career' | null;
+type OverlayScreen = 'home' | 'settings' | 'career' | 'leaderboard' | null;
 
 function AppRoot() {
   const { setBgmPaused } = useGameAudio();
@@ -22,7 +24,7 @@ function AppRoot() {
   const [gameOver, setGameOver] = useState(false);
 
   const effectiveOverlay: OverlayScreen = !gameStarted
-    ? overlay === 'settings' || overlay === 'career'
+    ? overlay === 'settings' || overlay === 'career' || overlay === 'leaderboard'
       ? overlay
       : 'home'
     : overlay;
@@ -34,6 +36,7 @@ function AppRoot() {
       effectiveOverlay === 'home' ||
         effectiveOverlay === 'settings' ||
         effectiveOverlay === 'career' ||
+        effectiveOverlay === 'leaderboard' ||
         gamePaused ||
         gameOver,
     );
@@ -60,6 +63,14 @@ function AppRoot() {
     setOverlay('settings');
   }, []);
 
+  const handleOpenLeaderboard = useCallback(() => {
+    setOverlay('leaderboard');
+  }, []);
+
+  const handleCloseLeaderboard = useCallback(() => {
+    setOverlay(gameStarted ? 'settings' : 'home');
+  }, [gameStarted]);
+
   const handleCareerReset = useCallback(() => {
     setGameStarted(false);
     setOverlay('home');
@@ -82,7 +93,11 @@ function AppRoot() {
 
       {effectiveOverlay === 'home' ? (
         <View style={styles.overlay}>
-          <StartScreen onStart={handleStartGame} onOpenSettings={handleOpenSettings} />
+          <StartScreen
+            onStart={handleStartGame}
+            onOpenSettings={handleOpenSettings}
+            onOpenLeaderboard={handleOpenLeaderboard}
+          />
         </View>
       ) : null}
 
@@ -91,6 +106,7 @@ function AppRoot() {
           <SettingsScreen
             onBack={handleCloseSettings}
             onOpenCareer={handleOpenCareer}
+            onOpenLeaderboard={handleOpenLeaderboard}
             onCareerReset={handleCareerReset}
           />
         </View>
@@ -104,6 +120,12 @@ function AppRoot() {
           />
         </View>
       ) : null}
+
+      {effectiveOverlay === 'leaderboard' ? (
+        <View style={styles.overlay}>
+          <LeaderboardScreen onBack={handleCloseLeaderboard} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -114,10 +136,12 @@ export default function App() {
       <SettingsProvider>
         <ScoreProvider>
           <CareerProvider>
-            <GameAudioProvider>
-              <AppRoot />
-              <StatusBar style="light" />
-            </GameAudioProvider>
+            <LeaderboardProvider>
+              <GameAudioProvider>
+                <AppRoot />
+                <StatusBar style="light" />
+              </GameAudioProvider>
+            </LeaderboardProvider>
           </CareerProvider>
         </ScoreProvider>
       </SettingsProvider>

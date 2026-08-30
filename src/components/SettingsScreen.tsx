@@ -16,12 +16,14 @@ import { SettingsToggleRow } from './SettingsToggleRow';
 type SettingsScreenProps = {
   onBack: () => void;
   onOpenCareer: () => void;
+  onOpenLeaderboard: () => void;
   onCareerReset: () => void;
 };
 
 function SettingsScreenComponent({
   onBack,
   onOpenCareer,
+  onOpenLeaderboard,
   onCareerReset,
 }: SettingsScreenProps) {
   const {
@@ -196,6 +198,11 @@ function SettingsScreenComponent({
             {settings.careerModeEnabled ? (
               <Pressable accessibilityRole="link" onPress={onOpenCareer}>
                 <Text style={styles.careerLink}>{translate('career.screen.title')}</Text>
+              </Pressable>
+            ) : null}
+            {settings.careerModeEnabled ? (
+              <Pressable accessibilityRole="link" onPress={onOpenLeaderboard}>
+                <Text style={styles.careerLink}>{translate('leaderboard.title')}</Text>
               </Pressable>
             ) : null}
             {settings.careerModeEnabled && careerLoaded ? (
