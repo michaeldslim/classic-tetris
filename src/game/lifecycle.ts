@@ -7,7 +7,7 @@ import {
   createEmptyBoard,
   findFullLineRows,
 } from './board';
-import { getNextStage, isStageComplete } from './campaign';
+import { getNextStage, getStageLineTarget, isStageComplete } from './campaign';
 import { computeLineClearScore } from './scoring';
 import { LOCK_SPAWN_DELAY_MS } from './speed';
 import type { ActivePiece, GameState } from './types';
@@ -70,7 +70,7 @@ function finalizeLineClear(state: GameState, linesCleared: number): GameState {
     lineClear: null,
   };
 
-  if (isStageComplete(lines, state.stage)) {
+  if (isStageComplete(lines, state.stage, state.stageLineTargetOverride)) {
     return {
       ...clearedState,
       active: null,
@@ -133,6 +133,7 @@ export function goToCampaignStage(
   state: GameState,
   level: number,
   stage: number,
+  modifiers: { stageLineTarget?: number; gravityTier?: number } = {},
 ): GameState {
   const bag = createShuffledBag();
   const { piece: first, bag: bagAfterFirst } = drawFromBag(bag);
@@ -146,6 +147,8 @@ export function goToCampaignStage(
     level,
     stage,
     lines: 0,
+    stageLineTargetOverride: modifiers.stageLineTarget,
+    gravityTierOverride: modifiers.gravityTier,
     gameOver: false,
     stageCleared: false,
     campaignComplete: false,
@@ -162,8 +165,9 @@ export function goToCampaignStage(
 export function createStateAtCampaignPosition(
   level: number,
   stage: number,
+  modifiers: { stageLineTarget?: number; gravityTier?: number } = {},
 ): GameState {
-  return goToCampaignStage(createInitialState(), level, stage);
+  return goToCampaignStage(createInitialState(), level, stage, modifiers);
 }
 
 export function advanceToNextStage(state: GameState): GameState {
@@ -185,6 +189,8 @@ export function advanceToNextStage(state: GameState): GameState {
     level: next.level,
     stage: next.stage,
     lines: 0,
+    stageLineTargetOverride: undefined,
+    gravityTierOverride: undefined,
     stageCleared: false,
     lineClear: null,
     fallAccumulator: 0,
@@ -231,6 +237,8 @@ export function createStageRestartState(state: GameState): GameState {
     level: state.level,
     stage: state.stage,
     lines: 0,
+    stageLineTargetOverride: state.stageLineTargetOverride,
+    gravityTierOverride: state.gravityTierOverride,
     gameOver: false,
     stageCleared: false,
     campaignComplete: false,

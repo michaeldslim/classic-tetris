@@ -74,7 +74,11 @@ export function tick(state: GameState, dt: number): GameState {
   let nextState = processDas(state, dt);
 
   let acc = nextState.fallAccumulator + dt;
-  const interval = getGravityInterval(nextState.level, nextState.stage);
+  const interval = getGravityInterval(
+    nextState.level,
+    nextState.stage,
+    nextState.gravityTierOverride,
+  );
 
   while (acc >= interval) {
     acc -= interval;
@@ -99,7 +103,10 @@ export function reduce(state: GameState, action: EngineAction): GameState {
 
   if (typeof action === 'object' && action.type === 'RESTART') {
     if (action.level !== undefined && action.stage !== undefined) {
-      return createStateAtCampaignPosition(action.level, action.stage);
+      return createStateAtCampaignPosition(action.level, action.stage, {
+        stageLineTarget: action.stageLineTarget,
+        gravityTier: action.gravityTier,
+      });
     }
     return createInitialState();
   }
@@ -113,7 +120,10 @@ export function reduce(state: GameState, action: EngineAction): GameState {
       return state;
     }
     if (action.level !== undefined && action.stage !== undefined) {
-      return goToCampaignStage(state, action.level, action.stage);
+      return goToCampaignStage(state, action.level, action.stage, {
+        stageLineTarget: action.stageLineTarget,
+        gravityTier: action.gravityTier,
+      });
     }
     return advanceToNextStage(state);
   }

@@ -24,6 +24,10 @@ export type GameState = {
   stage: number;
   /** Lines cleared in the current stage. */
   lines: number;
+  /** Overrides campaign line target for hidden / special stages. */
+  stageLineTargetOverride?: number;
+  /** Overrides gravity tier for hidden / special stages. */
+  gravityTierOverride?: number;
   gameOver: boolean;
   stageCleared: boolean;
   campaignComplete: boolean;
@@ -46,12 +50,17 @@ export type GameAction =
   | 'ROTATE'
   | 'HARD_DROP';
 
+export type StageModifiers = {
+  stageLineTarget?: number;
+  gravityTier?: number;
+};
+
 export type EngineAction =
   | GameAction
   | { type: 'TICK'; dt: number }
-  | { type: 'RESTART'; level?: number; stage?: number }
+  | ({ type: 'RESTART'; level?: number; stage?: number } & StageModifiers)
   | { type: 'RETRY_STAGE' }
-  | { type: 'NEXT_STAGE'; level?: number; stage?: number }
+  | ({ type: 'NEXT_STAGE'; level?: number; stage?: number } & StageModifiers)
   | { type: 'DAS'; direction: -1 | 0 | 1 };
 
 export type BoardCell = TetrominoType | null;
@@ -62,6 +71,7 @@ export type GameStats = {
   stage: number;
   lines: number;
   lineTarget: number;
+  gravityTier?: number;
 };
 
 export const BOARD_WIDTH = 8;

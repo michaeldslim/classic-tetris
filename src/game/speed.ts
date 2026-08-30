@@ -11,8 +11,12 @@ const FRAME_MS = 1000 / 60;
 /** Casual mobile pace — pieces fall slowly; swipe down for a fast drop */
 const GRAVITY_SCALE = 2;
 
-export function getGravityInterval(_campaignLevel: number, stage: number): number {
-  const tier = getGravityTier(stage);
+export function getGravityInterval(
+  _campaignLevel: number,
+  stage: number,
+  gravityTierOverride?: number,
+): number {
+  const tier = gravityTierOverride ?? getGravityTier(stage);
   const index = Math.min(tier, NES_GRAVITY_FRAMES.length - 1);
   return NES_GRAVITY_FRAMES[index]! * FRAME_MS * GRAVITY_SCALE;
 }
