@@ -5,6 +5,7 @@ export type TranslationSchema = {
   home: {
     startGame: string;
     highScore: string;
+    leaderboardBadge: string;
   };
   settings: {
     title: string;
@@ -159,6 +160,23 @@ export type TranslationSchema = {
       'score-50k': { title: string; description: string };
     };
   };
+  leaderboard: {
+    title: string;
+    empty: {
+      title: string;
+      body: string;
+    };
+    save: {
+      title: string;
+      subtitle: string;
+      score: string;
+      rank: string;
+      initialsLabel: string;
+      initialsPlaceholder: string;
+      initialsHint: string;
+      button: string;
+    };
+  };
 };
 
 export const en: TranslationSchema = {
@@ -168,6 +186,7 @@ export const en: TranslationSchema = {
   home: {
     startGame: 'START GAME',
     highScore: 'Best {{score}}',
+    leaderboardBadge: 'Chairman board · {{count}}',
   },
   settings: {
     title: 'SETTINGS',
@@ -336,6 +355,23 @@ export const en: TranslationSchema = {
         title: 'Tetris legend',
         description: 'Reach 50,000 points in one run',
       },
+    },
+  },
+  leaderboard: {
+    title: 'Chairman leaderboard',
+    empty: {
+      title: 'No chairman clears yet',
+      body: 'Clear all hidden stages and become Chairman to record your initials here.',
+    },
+    save: {
+      title: 'Save your clear',
+      subtitle: 'Enter 3-letter initials for the chairman leaderboard.',
+      score: 'Score',
+      rank: 'Rank: {{rank}}',
+      initialsLabel: 'Initials',
+      initialsPlaceholder: 'ABC',
+      initialsHint: '3 letters A–Z',
+      button: 'SAVE & CONTINUE',
     },
   },
 } as const satisfies TranslationSchema;

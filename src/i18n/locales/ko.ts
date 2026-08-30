@@ -7,6 +7,7 @@ export const ko: TranslationSchema = {
   home: {
     startGame: '게임 시작',
     highScore: '최고 {{score}}',
+    leaderboardBadge: '회장 리더보드 · {{count}}명',
   },
   settings: {
     title: '설정',
@@ -175,6 +176,23 @@ export const ko: TranslationSchema = {
         title: '테트리스 레전드',
         description: '한 판에서 50,000점 달성',
       },
+    },
+  },
+  leaderboard: {
+    title: '회장 리더보드',
+    empty: {
+      title: '아직 회장 클리어 기록이 없습니다',
+      body: '숨겨진 스테이지를 모두 클리어하고 회장이 되면 이니셜을 남길 수 있습니다.',
+    },
+    save: {
+      title: '클리어 기록 저장',
+      subtitle: '회장 리더보드에 표시할 3글자 이니셜을 입력하세요.',
+      score: '점수',
+      rank: '직급: {{rank}}',
+      initialsLabel: '이니셜',
+      initialsPlaceholder: 'ABC',
+      initialsHint: '영문 3글자 (A–Z)',
+      button: '저장하고 계속',
     },
   },
 };
