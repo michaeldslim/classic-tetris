@@ -8,7 +8,11 @@ import {
   type ReactNode,
 } from 'react';
 import { useSettings } from '../settings/SettingsContext';
-import { applyStageResult, DEFAULT_CAREER_STATE } from './careerProgress';
+import {
+  applyStageResult,
+  DEFAULT_CAREER_STATE,
+  getResetStateAfterChairman,
+} from './careerProgress';
 import { clearCareerState, loadCareerState, saveCareerState } from './careerStorage';
 import type { PromotionResult, StageResultInput } from './types';
 import type { CareerState } from './types';
@@ -18,6 +22,7 @@ interface CareerContextValue {
   loaded: boolean;
   recordStageResult: (input: StageResultInput) => PromotionResult | null;
   resetCareerProgress: () => Promise<void>;
+  finalizeChairmanClear: () => Promise<void>;
 }
 
 const CareerContext = createContext<CareerContextValue | null>(null);
@@ -69,14 +74,24 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     await clearCareerState();
   }, []);
 
+  const finalizeChairmanClear = useCallback(async () => {
+    let nextState = DEFAULT_CAREER_STATE;
+    setCareerState((current) => {
+      nextState = getResetStateAfterChairman(current);
+      return nextState;
+    });
+    await saveCareerState(nextState);
+  }, []);
+
   const value = useMemo(
     () => ({
       careerState,
       loaded,
       recordStageResult,
       resetCareerProgress,
+      finalizeChairmanClear,
     }),
-    [careerState, loaded, recordStageResult, resetCareerProgress],
+    [careerState, loaded, recordStageResult, resetCareerProgress, finalizeChairmanClear],
   );
 
   return <CareerContext.Provider value={value}>{children}</CareerContext.Provider>;

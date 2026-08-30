@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { careerRankKey, getCareerProgressCopy, getStageClearCareerHint } from '../career/careerLabels';
-import { getPromotionStagePosition } from '../career/careerRules';
+import { getCareerStageTarget } from '../career/careerRules';
+import type { CareerStageTarget } from '../career/types';
 import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
 import { getGhostPiece } from '../game/engine';
-import { getStageLineTarget } from '../game/campaign';
+import { getStageLineTarget, getGravityTier } from '../game/campaign';
 import { BOARD_FRAME_SIZE } from '../theme/colors';
 import { BOARD_WIDTH, computeCellSize } from '../game/types';
-import type { GameAction } from '../game/types';
+import type { EngineAction, GameAction } from '../game/types';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useGameFeedback } from '../hooks/useGameFeedback';
 import { useGameLoop } from '../hooks/useGameLoop';
@@ -47,6 +48,20 @@ const PROFILE_BAR_HEIGHT = 72;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
 
+function dispatchCareerStage(
+  dispatch: (action: EngineAction) => void,
+  target: CareerStageTarget,
+  actionType: 'NEXT_STAGE' | 'RESTART',
+) {
+  dispatch({
+    type: actionType,
+    level: target.level,
+    stage: target.stage,
+    stageLineTarget: target.lineTarget,
+    gravityTier: target.gravityTier,
+  });
+}
+
 type GameScreenProps = {
   active?: boolean;
   onOpenSettings: () => void;
@@ -61,7 +76,8 @@ export function GameScreen({
   onGameOverChange,
 }: GameScreenProps) {
   const { settings, translate } = useSettings();
-  const { careerState, loaded: careerLoaded, recordStageResult } = useCareer();
+  const { careerState, loaded: careerLoaded, recordStageResult, finalizeChairmanClear } =
+    useCareer();
   const { scoreRecord, updateScoreProgress } = useScore();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -104,7 +120,9 @@ export function GameScreen({
     state.lineClear !== null ||
     state.pendingSpawn;
 
-  const lineTarget = getStageLineTarget(state.stage);
+  const lineTarget = getStageLineTarget(state.stage, state.stageLineTargetOverride);
+  const gravityTier =
+    state.gravityTierOverride ?? getGravityTier(state.stage);
 
   const tutorialLayoutHeight = GESTURE_TUTORIAL_HEIGHT + TUTORIAL_GAP;
 
@@ -215,17 +233,10 @@ export function GameScreen({
     setShowPromotionOverlay(false);
 
     if (settings.careerModeEnabled && careerLoaded) {
-      const nextPosition = getPromotionStagePosition(
-        careerState.rank,
-        careerState.promotionWins,
-      );
+      const nextPosition = getCareerStageTarget(careerState);
 
       if (nextPosition) {
-        dispatch({
-          type: 'NEXT_STAGE',
-          level: nextPosition.level,
-          stage: nextPosition.stage,
-        });
+        dispatchCareerStage(dispatch, nextPosition, 'NEXT_STAGE');
         return;
       }
     }
@@ -233,8 +244,7 @@ export function GameScreen({
     dispatch({ type: 'NEXT_STAGE' });
   }, [
     careerLoaded,
-    careerState.promotionWins,
-    careerState.rank,
+    careerState,
     dispatch,
     settings.careerModeEnabled,
   ]);
@@ -260,17 +270,10 @@ export function GameScreen({
     lastProcessedScoreRef.current = 0;
 
     if (settings.careerModeEnabled && careerLoaded) {
-      const startPosition = getPromotionStagePosition(
-        careerState.rank,
-        careerState.promotionWins,
-      );
+      const startPosition = getCareerStageTarget(careerState);
 
       if (startPosition) {
-        dispatch({
-          type: 'RESTART',
-          level: startPosition.level,
-          stage: startPosition.stage,
-        });
+        dispatchCareerStage(dispatch, startPosition, 'RESTART');
         return;
       }
     }
@@ -381,8 +384,11 @@ export function GameScreen({
   }, []);
 
   const handlePromotionComplete = useCallback(() => {
+    if (careerResult?.promoted === 'chairman') {
+      void finalizeChairmanClear();
+    }
     setShowPromotionOverlay(false);
-  }, []);
+  }, [careerResult?.promoted, finalizeChairmanClear]);
 
   useEffect(() => {
     if (
@@ -456,32 +462,31 @@ export function GameScreen({
       return;
     }
 
-    const startPosition = getPromotionStagePosition(
-      careerState.rank,
-      careerState.promotionWins,
-    );
+    const startPosition = getCareerStageTarget(careerState);
 
     if (!startPosition) {
       return;
     }
 
-    if (state.level !== startPosition.level || state.stage !== startPosition.stage) {
-      dispatch({
-        type: 'RESTART',
-        level: startPosition.level,
-        stage: startPosition.stage,
-      });
+    if (
+      state.level !== startPosition.level ||
+      state.stage !== startPosition.stage ||
+      state.stageLineTargetOverride !== startPosition.lineTarget ||
+      state.gravityTierOverride !== startPosition.gravityTier
+    ) {
+      dispatchCareerStage(dispatch, startPosition, 'RESTART');
     }
   }, [
     careerLoaded,
-    careerState.promotionWins,
-    careerState.rank,
+    careerState,
     dispatch,
     settings.careerModeEnabled,
     showPromotionOverlay,
+    state.gravityTierOverride,
     state.level,
     state.stage,
     state.stageCleared,
+    state.stageLineTargetOverride,
   ]);
 
   const handleOpenSettings = useCallback(() => {
@@ -493,12 +498,16 @@ export function GameScreen({
   }, [modalBlocking, onOpenSettings]);
 
   const promotedRank = careerResult?.promoted ?? null;
-  const promotionTitle =
-    promotedRank === 'ceo'
+  const isChairmanPromotion = promotedRank === 'chairman';
+  const isCeoPromotion = promotedRank === 'ceo';
+  const promotionTitle = isChairmanPromotion
+    ? translate('career.chairmanReached.title')
+    : isCeoPromotion
       ? translate('career.ceoReached.title')
       : translate('career.promoted.title');
-  const promotionSubtitle =
-    promotedRank === 'ceo'
+  const promotionSubtitle = isChairmanPromotion
+    ? translate('career.chairmanReached.subtitle')
+    : isCeoPromotion
       ? translate('career.ceoReached.subtitle')
       : promotedRank
         ? translate('career.promoted.subtitle', {
@@ -598,6 +607,7 @@ export function GameScreen({
                           stage: state.stage,
                           lines: state.lines,
                           lineTarget,
+                          gravityTier,
                         }}
                         nextPiece={state.next}
                       />
@@ -642,7 +652,8 @@ export function GameScreen({
                       visible={showPromotionOverlay}
                       title={promotionTitle}
                       subtitle={promotionSubtitle}
-                      isCeo={promotedRank === 'ceo'}
+                      isCeo={isCeoPromotion}
+                      isChairman={isChairmanPromotion}
                       playerAvatarId={settings.playerAvatarId}
                       onComplete={handlePromotionComplete}
                     />

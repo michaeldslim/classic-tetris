@@ -7,6 +7,9 @@ import {
   getCareerLadderRows,
   getCareerLadderStatus,
   getCareerProgressCopy,
+  getHiddenStageLadderLabel,
+  getHiddenStageLadderStatus,
+  getHiddenStagesForLadderRank,
   isMaxCareerRank,
   type CareerLadderStatus,
 } from '../career/careerLabels';
@@ -152,7 +155,54 @@ function LadderRow({
           </Text>
         </View>
         {detail ? <Text style={styles.ladderDetail}>{detail}</Text> : null}
+        <HiddenStageList rank={rank} state={state} />
       </View>
+    </View>
+  );
+}
+
+function HiddenStageList({
+  rank,
+  state,
+}: {
+  rank: CareerRank;
+  state: CareerState;
+}) {
+  const { translate } = useSettings();
+  const hiddenIndices = getHiddenStagesForLadderRank(rank);
+
+  if (hiddenIndices.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.hiddenList}>
+      {hiddenIndices.map((hiddenIndex) => {
+        const status = getHiddenStageLadderStatus(state, rank, hiddenIndex);
+        const label = getHiddenStageLadderLabel(translate, rank, hiddenIndex, status);
+
+        return (
+          <View
+            key={`${rank}-hidden-${hiddenIndex}`}
+            style={[
+              styles.hiddenRow,
+              status === 'current' && styles.hiddenRowCurrent,
+              status === 'achieved' && styles.hiddenRowAchieved,
+            ]}
+          >
+            <Text style={styles.hiddenIcon}>{status === 'locked' ? '🔒' : '◆'}</Text>
+            <Text
+              style={[
+                styles.hiddenLabel,
+                status === 'locked' && styles.hiddenLabelLocked,
+                status === 'current' && styles.hiddenLabelCurrent,
+              ]}
+            >
+              {label}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -420,6 +470,43 @@ const styles = StyleSheet.create({
     color: theme.textMuted,
     fontSize: 12,
     lineHeight: 18,
+  },
+  hiddenList: {
+    marginTop: 8,
+    gap: 6,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.panelBorder,
+  },
+  hiddenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  hiddenRowCurrent: {
+    opacity: 1,
+  },
+  hiddenRowAchieved: {
+    opacity: 0.85,
+  },
+  hiddenIcon: {
+    fontSize: 11,
+    width: 16,
+    textAlign: 'center',
+  },
+  hiddenLabel: {
+    flex: 1,
+    color: theme.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  hiddenLabelLocked: {
+    opacity: 0.65,
+  },
+  hiddenLabelCurrent: {
+    color: theme.accent,
+    fontWeight: '700',
   },
   disabledCard: {
     backgroundColor: theme.panel,

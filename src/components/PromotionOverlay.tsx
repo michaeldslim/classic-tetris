@@ -9,12 +9,14 @@ type PromotionOverlayProps = {
   title: string;
   subtitle: string;
   isCeo: boolean;
+  isChairman?: boolean;
   playerAvatarId: AvatarId;
   onComplete: () => void;
 };
 
 const DISPLAY_MS = 1200;
 const CEO_DISPLAY_MS = 1800;
+const CHAIRMAN_DISPLAY_MS = 2200;
 const FADE_MS = 400;
 
 export function PromotionOverlay({
@@ -22,6 +24,7 @@ export function PromotionOverlay({
   title,
   subtitle,
   isCeo,
+  isChairman = false,
   playerAvatarId,
   onComplete,
 }: PromotionOverlayProps) {
@@ -36,7 +39,11 @@ export function PromotionOverlay({
       return;
     }
 
-    const displayMs = isCeo ? CEO_DISPLAY_MS : DISPLAY_MS;
+    const displayMs = isChairman
+      ? CHAIRMAN_DISPLAY_MS
+      : isCeo
+        ? CEO_DISPLAY_MS
+        : DISPLAY_MS;
 
     backdropOpacity.setValue(0);
     bannerScale.setValue(0.45);
@@ -104,7 +111,7 @@ export function PromotionOverlay({
       animation.stop();
       clearTimeout(timeoutId);
     };
-  }, [backdropOpacity, bannerOpacity, bannerScale, isCeo, visible]);
+  }, [backdropOpacity, bannerOpacity, bannerScale, isCeo, isChairman, visible]);
 
   if (!visible) {
     return null;
@@ -118,6 +125,7 @@ export function PromotionOverlay({
         style={[
           styles.banner,
           isCeo && styles.bannerCeo,
+          isChairman && styles.bannerChairman,
           {
             opacity: bannerOpacity,
             transform: [{ scale: bannerScale }],
@@ -125,7 +133,9 @@ export function PromotionOverlay({
         ]}
       >
         <PlayerAvatar avatarId={playerAvatarId} size="xl" style={styles.avatar} />
-        <Text style={[styles.title, isCeo && styles.titleCeo]}>{title}</Text>
+        <Text style={[styles.title, isCeo && styles.titleCeo, isChairman && styles.titleChairman]}>
+          {title}
+        </Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </Animated.View>
     </View>
@@ -170,6 +180,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     paddingVertical: 28,
   },
+  bannerChairman: {
+    borderWidth: 3,
+    borderColor: '#f0c000',
+    paddingVertical: 30,
+  },
   avatar: {
     marginBottom: 4,
   },
@@ -181,6 +196,10 @@ const styles = StyleSheet.create({
   },
   titleCeo: {
     fontSize: 32,
+  },
+  titleChairman: {
+    fontSize: 34,
+    color: '#f0c000',
   },
   subtitle: {
     color: theme.text,

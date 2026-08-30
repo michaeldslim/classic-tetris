@@ -60,7 +60,7 @@ function HudPanelComponent({
   careerMode,
 }: HudPanelProps) {
   const { translate } = useSettings();
-  const gravityTier = getGravityTier(stats.stage);
+  const gravityTier = stats.gravityTier ?? getGravityTier(stats.stage);
 
   return (
     <View style={styles.container}>
