@@ -1,3 +1,4 @@
+import type { BonusGameState, CampaignSnapshot } from './bonusGame';
 import type { TetrominoType } from '../theme/colors';
 
 export type ActivePiece = {
@@ -12,11 +13,16 @@ export type LineClearEffect = {
   elapsed: number;
 };
 
+export type GameMode = 'campaign' | 'bonus';
+
 export type GameState = {
   board: BoardCell[][];
   active: ActivePiece | null;
   next: TetrominoType;
   bag: TetrominoType[];
+  mode: GameMode;
+  campaignSnapshot?: CampaignSnapshot;
+  bonus?: BonusGameState;
   score: number;
   /** Campaign level (1–5). */
   level: number;
@@ -61,7 +67,9 @@ export type EngineAction =
   | ({ type: 'RESTART'; level?: number; stage?: number } & StageModifiers)
   | { type: 'RETRY_STAGE' }
   | ({ type: 'NEXT_STAGE'; level?: number; stage?: number } & StageModifiers)
-  | { type: 'DAS'; direction: -1 | 0 | 1 };
+  | { type: 'DAS'; direction: -1 | 0 | 1 }
+  | { type: 'ENTER_BONUS' }
+  | { type: 'EXIT_BONUS' };
 
 export type BoardCell = TetrominoType | null;
 
@@ -72,6 +80,9 @@ export type GameStats = {
   lines: number;
   lineTarget: number;
   gravityTier?: number;
+  bonusMode?: boolean;
+  bonusTimerSec?: number;
+  bonusMultiplier?: number;
 };
 
 export const BOARD_WIDTH = 8;

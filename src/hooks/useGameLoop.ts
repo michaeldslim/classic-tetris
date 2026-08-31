@@ -15,8 +15,18 @@ export function useGameLoop(
   const softDropActiveRefStable = useRef(softDropActiveRef);
   softDropActiveRefStable.current = softDropActiveRef;
 
+  const bonusEnded = state.mode === 'bonus' && state.bonus?.ended === true;
+  const campaignStageCleared =
+    state.mode === 'campaign' && state.stageCleared;
+
   useEffect(() => {
-    if (state.gameOver || paused || state.campaignComplete || state.stageCleared) {
+    if (
+      state.gameOver ||
+      paused ||
+      state.campaignComplete ||
+      campaignStageCleared ||
+      bonusEnded
+    ) {
       return;
     }
 
@@ -28,11 +38,18 @@ export function useGameLoop(
       const dt = now - lastTime;
       lastTime = now;
 
+      const current = stateRef.current;
+      const currentBonusEnded =
+        current.mode === 'bonus' && current.bonus?.ended === true;
+      const currentCampaignStageCleared =
+        current.mode === 'campaign' && current.stageCleared;
+
       if (
-        !stateRef.current.gameOver &&
+        !current.gameOver &&
         !pausedRef.current &&
-        !stateRef.current.campaignComplete &&
-        !stateRef.current.stageCleared
+        !current.campaignComplete &&
+        !currentCampaignStageCleared &&
+        !currentBonusEnded
       ) {
         dispatch({ type: 'TICK', dt });
 
@@ -57,5 +74,12 @@ export function useGameLoop(
     return () => {
       cancelAnimationFrame(frameId);
     };
-  }, [state.gameOver, state.campaignComplete, state.stageCleared, paused, dispatch]);
+  }, [
+    state.gameOver,
+    state.campaignComplete,
+    campaignStageCleared,
+    bonusEnded,
+    paused,
+    dispatch,
+  ]);
 }

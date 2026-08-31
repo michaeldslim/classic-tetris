@@ -12,9 +12,10 @@ import {
   createStateAtCampaignPosition,
   getGravityInterval,
   goToCampaignStage,
-  spawnNextPiece,
 } from './lifecycle';
+import { enterBonus, exitBonus, tickBonusTimer } from './bonusGame';
 import { getLineClearDuration } from './lineClearFx';
+import { spawnNextPiece } from './spawn';
 import type { EngineAction, GameState } from './types';
 
 export {
@@ -26,13 +27,28 @@ export {
   getGravityInterval,
   goToCampaignStage,
   lockActivePiece,
-  spawnNextPiece,
 } from './lifecycle';
+export { spawnNextPiece } from './spawn';
 export { getGhostPiece } from './actions';
 export type { ActivePiece, GameState } from './types';
 
 export function tick(state: GameState, dt: number): GameState {
-  if (state.gameOver || state.stageCleared || state.campaignComplete) {
+  if (state.mode === 'bonus' && state.bonus && !state.bonus.ended) {
+    state = tickBonusTimer(state, dt);
+    if (state.bonus?.ended) {
+      return state;
+    }
+  }
+
+  if (state.gameOver || state.campaignComplete) {
+    return state;
+  }
+
+  if (state.mode === 'campaign' && state.stageCleared) {
+    return state;
+  }
+
+  if (state.mode === 'bonus' && state.bonus?.ended) {
     return state;
   }
 
@@ -128,7 +144,23 @@ export function reduce(state: GameState, action: EngineAction): GameState {
     return advanceToNextStage(state);
   }
 
-  if (state.pendingSpawn || state.lineClear || state.stageCleared || state.campaignComplete) {
+  if (typeof action === 'object' && action.type === 'ENTER_BONUS') {
+    return enterBonus(state);
+  }
+
+  if (typeof action === 'object' && action.type === 'EXIT_BONUS') {
+    return exitBonus(state);
+  }
+
+  if (state.mode === 'bonus' && state.bonus?.ended) {
+    return state;
+  }
+
+  if (state.pendingSpawn || state.lineClear || state.campaignComplete) {
+    return state;
+  }
+
+  if (state.mode === 'campaign' && state.stageCleared) {
     return state;
   }
 
