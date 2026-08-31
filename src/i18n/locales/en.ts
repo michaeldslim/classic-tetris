@@ -37,6 +37,20 @@ export type TranslationSchema = {
     stage: string;
     line: string;
     next: string;
+    timer: string;
+    multiplier: string;
+  };
+  bonus: {
+    title: string;
+    scoreMultiplier: string;
+    rules: string;
+    start: string;
+    continue: string;
+    cleared: string;
+    ended: string;
+    earnedScore: string;
+    successHint: string;
+    failHint: string;
   };
   profile: {
     score: string;
@@ -218,6 +232,20 @@ export const en: TranslationSchema = {
     stage: 'STG',
     line: 'LINE',
     next: 'NEXT',
+    timer: 'TIME',
+    multiplier: '×{{multiplier}}',
+  },
+  bonus: {
+    title: 'BONUS GAME',
+    scoreMultiplier: '{{multiplier}}× score on line clears',
+    rules: 'Clear {{lines}} lines in {{seconds}}s',
+    start: 'START',
+    continue: 'CONTINUE',
+    cleared: 'BONUS CLEAR!',
+    ended: 'BONUS OVER',
+    earnedScore: '+{{score}} pts',
+    successHint: 'Bonus score added to your run.',
+    failHint: 'Partial bonus score saved. Campaign continues.',
   },
   profile: {
     score: 'Score',

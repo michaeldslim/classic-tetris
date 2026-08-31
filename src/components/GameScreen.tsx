@@ -15,6 +15,11 @@ import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
 import { getGhostPiece } from '../game/engine';
 import { getStageLineTarget, getGravityTier } from '../game/campaign';
+import {
+  BONUS_LINE_TARGET,
+  BONUS_SCORE_MULTIPLIER,
+  shouldTriggerBonus,
+} from '../game/bonusGame';
 import { BOARD_FRAME_SIZE } from '../theme/colors';
 import { BOARD_WIDTH, computeCellSize } from '../game/types';
 import type { EngineAction, GameAction } from '../game/types';
@@ -30,6 +35,7 @@ import type { ScoreAchievementId } from '../score/types';
 import { theme } from '../theme/colors';
 import { AchievementToast } from './AchievementToast';
 import { BoardView } from './BoardView';
+import { BonusGameOverlay } from './BonusGameOverlay';
 import { ChairmanSaveOverlay } from './ChairmanSaveOverlay';
 import { GameOverlay } from './GameOverlay';
 import { GestureTutorial, GESTURE_TUTORIAL_HEIGHT } from './GestureTutorial';
@@ -49,6 +55,8 @@ const TITLE_ROW_HEIGHT = 40;
 const PROFILE_BAR_HEIGHT = 72;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
+
+type BonusPhase = 'none' | 'intro' | 'result';
 
 function dispatchCareerStage(
   dispatch: (action: EngineAction) => void,
@@ -90,6 +98,8 @@ export function GameScreen({
   const [careerResult, setCareerResult] = useState<PromotionResult | null>(null);
   const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
   const [showChairmanSaveOverlay, setShowChairmanSaveOverlay] = useState(false);
+  const [bonusPhase, setBonusPhase] = useState<BonusPhase>('none');
+  const [pendingBonus, setPendingBonus] = useState(false);
   const [chairmanSaveScore, setChairmanSaveScore] = useState(0);
   const [gameOverRestartReady, setGameOverRestartReady] = useState(false);
   const [achievementQueue, setAchievementQueue] = useState<ScoreAchievementId[]>([]);
@@ -98,6 +108,8 @@ export function GameScreen({
   const lastProcessedScoreRef = useRef(0);
   const recordedStageKey = useRef<string | null>(null);
   const recordedGameOverRun = useRef<number | null>(null);
+  const stagesClearedCountRef = useRef(0);
+  const bonusCheckStageKeyRef = useRef<string | null>(null);
   const runId = useRef(0);
   const recordStageResultRef = useRef(recordStageResult);
   recordStageResultRef.current = recordStageResult;
@@ -107,7 +119,12 @@ export function GameScreen({
   useGameLoop(
     state,
     dispatch,
-    paused || !active || showPromotionOverlay || showChairmanSaveOverlay,
+    paused ||
+      !active ||
+      showPromotionOverlay ||
+      showChairmanSaveOverlay ||
+      bonusPhase === 'intro' ||
+      bonusPhase === 'result',
     softDropActiveRef,
   );
   const { lockPulseKey } = useGameFeedback(state, lastAction);
@@ -115,8 +132,10 @@ export function GameScreen({
   const modalBlocking =
     showPromotionOverlay ||
     showChairmanSaveOverlay ||
+    bonusPhase === 'intro' ||
+    bonusPhase === 'result' ||
     state.gameOver ||
-    state.stageCleared ||
+    (state.stageCleared && state.mode === 'campaign') ||
     state.campaignComplete;
 
   const inputDisabled =
@@ -126,9 +145,15 @@ export function GameScreen({
     state.lineClear !== null ||
     state.pendingSpawn;
 
-  const lineTarget = getStageLineTarget(state.stage, state.stageLineTargetOverride);
+  const lineTarget =
+    state.mode === 'bonus'
+      ? BONUS_LINE_TARGET
+      : getStageLineTarget(state.stage, state.stageLineTargetOverride);
   const gravityTier =
     state.gravityTierOverride ?? getGravityTier(state.stage);
+  const bonusTimerSec = state.bonus
+    ? Math.ceil(state.bonus.timeRemainingMs / 1000)
+    : undefined;
 
   const tutorialLayoutHeight = GESTURE_TUTORIAL_HEIGHT + TUTORIAL_GAP;
 
@@ -261,6 +286,8 @@ export function GameScreen({
     recordedStageKey.current = null;
     setShowPromotionOverlay(false);
     setShowChairmanSaveOverlay(false);
+    setBonusPhase('none');
+    setPendingBonus(false);
     setPaused(false);
     setGameOverRestartReady(false);
   }, []);
@@ -303,7 +330,13 @@ export function GameScreen({
   }, [gameOverRestartReady, handleRetryStage]);
 
   const handlePauseToggle = useCallback(() => {
-    if (state.gameOver || state.stageCleared || state.campaignComplete) {
+    if (
+      state.gameOver ||
+      (state.stageCleared && state.mode === 'campaign') ||
+      state.campaignComplete ||
+      bonusPhase === 'intro' ||
+      bonusPhase === 'result'
+    ) {
       return;
     }
     setPaused((value) => {
@@ -313,7 +346,18 @@ export function GameScreen({
       }
       return !value;
     });
-  }, [state.gameOver, state.stageCleared, state.campaignComplete]);
+  }, [state.gameOver, state.stageCleared, state.campaignComplete, state.mode, bonusPhase]);
+
+  const handleBonusStart = useCallback(() => {
+    setBonusPhase('none');
+    dispatch({ type: 'ENTER_BONUS' });
+  }, [dispatch]);
+
+  const handleBonusContinue = useCallback(() => {
+    dispatch({ type: 'EXIT_BONUS' });
+    setPendingBonus(false);
+    setBonusPhase('none');
+  }, [dispatch]);
 
   const handleResume = useCallback(() => {
     setPaused(false);
@@ -422,8 +466,59 @@ export function GameScreen({
   );
 
   useEffect(() => {
+    if (!state.stageCleared || state.mode !== 'campaign') {
+      return;
+    }
+
+    const stageKey = `${state.level}-${state.stage}`;
+    if (bonusCheckStageKeyRef.current === stageKey) {
+      return;
+    }
+
+    bonusCheckStageKeyRef.current = stageKey;
+    stagesClearedCountRef.current += 1;
+
+    if (
+      shouldTriggerBonus({
+        stagesClearedTotal: stagesClearedCountRef.current,
+      })
+    ) {
+      setPendingBonus(true);
+    }
+  }, [state.stageCleared, state.mode, state.level, state.stage]);
+
+  useEffect(() => {
+    if (
+      !pendingBonus ||
+      bonusPhase !== 'none' ||
+      showPromotionOverlay ||
+      showChairmanSaveOverlay ||
+      !state.stageCleared ||
+      state.mode !== 'campaign'
+    ) {
+      return;
+    }
+
+    setBonusPhase('intro');
+  }, [
+    pendingBonus,
+    bonusPhase,
+    showPromotionOverlay,
+    showChairmanSaveOverlay,
+    state.stageCleared,
+    state.mode,
+  ]);
+
+  useEffect(() => {
+    if (state.mode === 'bonus' && state.bonus?.ended && bonusPhase !== 'result') {
+      setBonusPhase('result');
+    }
+  }, [state.mode, state.bonus?.ended, bonusPhase]);
+
+  useEffect(() => {
     if (
       !state.stageCleared ||
+      state.mode !== 'campaign' ||
       !settings.careerModeEnabled ||
       !careerLoaded
     ) {
@@ -450,6 +545,7 @@ export function GameScreen({
     }
   }, [
     state.stageCleared,
+    state.mode,
     state.level,
     state.stage,
     settings.careerModeEnabled,
@@ -566,7 +662,12 @@ export function GameScreen({
           <Pressable
             style={styles.iconButton}
             onPress={handlePauseToggle}
-            disabled={state.gameOver || state.stageCleared || state.campaignComplete}
+            disabled={
+              state.gameOver ||
+              (state.stageCleared && state.mode === 'campaign') ||
+              state.campaignComplete ||
+              bonusPhase !== 'none'
+            }
             accessibilityRole="button"
             accessibilityLabel={
               paused
@@ -641,6 +742,9 @@ export function GameScreen({
                           lines: state.lines,
                           lineTarget,
                           gravityTier,
+                          bonusMode: state.mode === 'bonus',
+                          bonusTimerSec,
+                          bonusMultiplier: BONUS_SCORE_MULTIPLIER,
                         }}
                         nextPiece={state.next}
                       />
@@ -650,10 +754,17 @@ export function GameScreen({
                       <GameOverlay
                         variant="pause"
                         onPrimary={handleResume}
-                        onSecondary={handleRetryStage}
+                        onSecondary={
+                          state.mode === 'bonus' ? undefined : handleRetryStage
+                        }
                       />
                     ) : null}
-                    {state.stageCleared && !showPromotionOverlay && !showChairmanSaveOverlay ? (
+                    {state.stageCleared &&
+                    state.mode === 'campaign' &&
+                    !showPromotionOverlay &&
+                    !showChairmanSaveOverlay &&
+                    !pendingBonus &&
+                    bonusPhase === 'none' ? (
                       <GameOverlay
                         variant="stageClear"
                         level={state.level}
@@ -681,6 +792,17 @@ export function GameScreen({
                         onPrimary={handleGameOverRestart}
                       />
                     ) : null}
+                    <BonusGameOverlay
+                      visible={bonusPhase === 'intro' || bonusPhase === 'result'}
+                      phase={bonusPhase === 'result' ? 'result' : 'intro'}
+                      earnedScore={state.bonus?.earnedScore}
+                      success={state.bonus?.success}
+                      onPrimary={
+                        bonusPhase === 'result'
+                          ? handleBonusContinue
+                          : handleBonusStart
+                      }
+                    />
                     <PromotionOverlay
                       visible={showPromotionOverlay}
                       title={promotionTitle}

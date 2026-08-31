@@ -61,11 +61,25 @@ function HudPanelComponent({
 }: HudPanelProps) {
   const { translate } = useSettings();
   const gravityTier = stats.gravityTier ?? getGravityTier(stats.stage);
+  const isBonus = stats.bonusMode === true;
 
   return (
     <View style={styles.container}>
       <View style={styles.statsColumn}>
-        {careerMode ? (
+        {isBonus ? (
+          <>
+            <StatBlock
+              label={translate('hud.timer')}
+              value={stats.bonusTimerSec ?? 0}
+            />
+            <StatBlock
+              label={translate('hud.multiplier', {
+                multiplier: String(stats.bonusMultiplier ?? 2),
+              })}
+              value={`×${stats.bonusMultiplier ?? 2}`}
+            />
+          </>
+        ) : careerMode ? (
           <StatBlock label={translate('hud.score')} value={stats.score} />
         ) : (
           <StatBlock
@@ -74,13 +88,13 @@ function HudPanelComponent({
             footer={<SpeedDots tier={gravityTier} />}
           />
         )}
-        {!careerMode ? (
+        {!careerMode && !isBonus ? (
           <StatBlock label={translate('hud.level')} value={stats.level} />
         ) : null}
         <StatBlock
           label={translate('hud.line')}
           value={`${stats.lines}/${stats.lineTarget}`}
-          footer={careerMode ? <SpeedDots tier={gravityTier} /> : null}
+          footer={!isBonus && careerMode ? <SpeedDots tier={gravityTier} /> : null}
         />
       </View>
 
