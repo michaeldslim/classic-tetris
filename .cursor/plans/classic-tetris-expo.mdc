@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~7 + Phase 8: 8b·8c 완료, 8a 보너스 미구현)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~8 완료)
 alwaysApply: false
 ---
 
@@ -16,7 +16,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 - **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
 - **승진 모드 ON** — intern → ceo 승진 + ceo 후 **숨김 13스테이지** → **회장** → 리더보드 저장 → 승진 리셋 ✅ (Phase 8b·8c)
 - **승진 모드 OFF** — 승진·숨김·회장·리더보드 없이 **일반 점수 캠페인** (하이스코어·업적)
-- **보너스 게임** (Phase 8a · 미구현) — 승진과 무관, 점수 올리기용 중간 미니게임
+- **보너스 게임** ✅ (Phase 8a) — 승진과 무관, 점수 올리기용 중간 미니게임 (60s · 10줄 · 2× 배율)
 - 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
 
 ---
@@ -33,7 +33,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어·리더보드) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **52 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard) |
+| 테스트 | Jest — **61 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard, bonusGame) |
 
 ### 빌드 & 실행
 
@@ -84,7 +84,7 @@ classic-tetris/
 │   │   ├── engine.ts          # reduce, tick
 │   │   ├── scoring.ts         # computeLineClearScore
 │   │   └── campaign.ts        # stage line targets, level/stage progression, gravity tier
-│   │   # bonusGame.ts         # (Phase 8a · 미구현)
+│   │   bonusGame.ts           # Phase 8a — 트리거·보너스 규칙·스냅샷 복원
 │   ├── career/
 │   │   ├── types.ts           # CareerRank (+ chairman), CareerPhase, CareerState, CareerStageTarget
 │   │   ├── careerRules.ts     # 승진 트랙, getCareerStageTarget, getPromotionStagePosition
@@ -126,7 +126,7 @@ classic-tetris/
 │   │   ├── CareerScreen.tsx   # 직급 트리, 승진·숨김·회장 경로 (🔒 서브 노드)
 │   │   ├── LeaderboardScreen.tsx # 회장 클리어 리더보드 (아바타·이니셜·점수·날짜)
 │   │   ├── ChairmanSaveOverlay.tsx # 회장 클리어 후 이니셜 입력 + 아바타 미리보기
-│   │   # BonusGameOverlay.tsx   # (Phase 8a · 미구현)
+│   │   BonusGameOverlay.tsx   # Phase 8a — 보너스 진입·결과 UI
 │   │   ├── GameScreen.tsx     # 게임 + 커리어/점수 연동, achievement toast
 │   │   ├── GameOverlay.tsx    # Pause / Game Over / Stage Clear / Campaign Complete
 │   │   ├── PromotionOverlay.tsx # 승진 축하 오버레이
@@ -523,7 +523,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 
 구현: `careerRules.ts` (`startCampaignLevel`, `getPromotionStagePosition`), `careerProgress.ts` (expected stage 검증), `GameScreen` (career ON 시 NEXT_STAGE/RESTART에 목표 level+stage 전달).
 
-> **Phase 8 확장**: 사장(ceo) 승진 후 **숨겨진 스테이지 회귀 공략** → **회장(chairman)** → 리더보드 저장 → 승진 리셋. **8b·8c ✅ 완료**, 8a 보너스 미구현. [Phase 8](#phase-8--보너스-게임--숨겨진-스테이지--회장) 참고.
+> **Phase 8 확장**: 사장(ceo) 승진 후 **숨겨진 스테이지 회귀 공략** → **회장(chairman)** → 리더보드 저장 → 승진 리셋. **8a·8b·8c ✅ 완료**. [Phase 8](#phase-8--보너스-게임--숨겨진-스테이지--회장) 참고.
 
 ### 완료 기준
 
@@ -663,7 +663,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 ### Phase 6c — 확장 (P5 · 기존 6b 항목)
 
 - [x] **Phase 8b·8c** — 숨김 스테이지 · 회장 · 리더보드 ✅
-- [ ] **Phase 8a** — 보너스 게임 (→ [Phase 8a](#phase-8a--보너스-게임))
+- [x] **Phase 8a** — 보너스 게임 ✅ (→ [Phase 8a](#phase-8a--보너스-게임))
 - [ ] **HOLD 재도입** — `GameState` + `HudPanel` MiniBoard + engine + 키보드 `C` (Phase 3에서 제거됨)
 - [ ] **테마** — 라이트/다크 앱 테마; 보드 preset (classic grey/beige vs 현재 avatar blue checker)
 - [ ] **홈 화면** — mini board preview loop; career badge + “승진 현황” shortcut; `@expo/vector-icons`로 ⚙/pause 이모지 대체
@@ -730,7 +730,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 
 ## Phase 8 — 보너스 게임 · 숨겨진 스테이지 · 회장
 
-**상태**: **8b ✅ · 8c ✅ · 8a ⬜** (보너스 게임만 미구현)
+**상태**: **8a ✅ · 8b ✅ · 8c ✅** (Phase 8 완료)
 
 **목표**: 커리어 모드에 **점수 전용 보너스 게임**(8a)과 **승진 구간 사이 잠긴 숨김 스테이지**(8b), **회장 리더보드**(8c)를 완성한다.
 
@@ -760,38 +760,38 @@ promotion  ──(ceo 승진)──►  hidden  ──(전 숨김 클리어)─�
 
 ---
 
-### Phase 8a — 보너스 게임
+### Phase 8a — 보너스 게임 ✅ (완료)
 
 **목표**: 일반 스테이지 플레이 중 **중간중간** 보너스 미니게임. 승진·숨김 진행과 **완전 분리**, 점수 부스트용.
 
-#### 트리거 (초안 — 구현 시 튜닝)
+#### 트리거
 
-- 스테이지 클리어 후 **확률** (예: 25%) 또는 N스테이지마다 1회
-- 커리어 OFF(점수 모드)에서도 동일하게 동작 가능
-- 승진 스테이지·숨김 스테이지·보너스 게임 중에는 서로 진행 카운트에 영향 없음
+- 스테이지 클리어 후 **25% 확률** 또는 **4스테이지마다** 1회 (`shouldTriggerBonus`)
+- 커리어 ON/OFF 모두 동작
+- 승진·숨김·보너스 진행 카운트 상호 영향 없음
 
-#### 게임플레이 (초안)
+#### 게임플레이
 
-- 짧은 변형 규칙 (예: 60초 타이머 / 10줄 목표 / 2× 점수 배율)
-- 클리어·실패 모두 **원래 캠페인 level/stage로 복귀** (승진 wins·hidden wins 불변)
-- 실패해도 game over 아님 — 보너스만 종료
+- **60초** 타이머 · **10줄** 목표 · **2×** 점수 배율
+- 클리어·실패·타임아웃·보드 가득 참 → **원래 캠페인 level/stage로 복원** (`campaignSnapshot`)
+- 실패·보드 가득 참 → game over 아님 — 보너스만 종료
 
 #### 작업
 
-- [ ] `src/game/bonusGame.ts` — 트리거 판정, 보너스 규칙(타이머·배율·목표), `BonusGameState`
-- [ ] `GameState` — `mode: 'campaign' | 'bonus'`, 보너스 종료 시 스냅샷 복원
-- [ ] `BonusGameOverlay.tsx` — 진입 안내, 결과(획득 점수), Continue
-- [ ] `GameScreen` — stage clear 후 보너스 분기; 보너스 중 입력·HUD 분기
-- [ ] i18n — `bonus.title`, `bonus.scoreMultiplier`, `bonus.continue` (en/ko)
-- [ ] Jest — `bonusGame.test.ts` (트리거·점수·진행 불변)
+- [x] `src/game/bonusGame.ts` — 트리거 판정, 보너스 규칙(타이머·배율·목표), `BonusGameState`, `CampaignSnapshot`
+- [x] `GameState` — `mode: 'campaign' | 'bonus'`, `ENTER_BONUS` / `EXIT_BONUS`, 보너스 종료 시 스냅샷 복원
+- [x] `BonusGameOverlay.tsx` — 진입 안내, 결과(획득 점수), Continue
+- [x] `GameScreen` — stage clear 후 보너스 분기; 승진/회장 오버레이 후 intro; 보너스 중 HUD·입력 분기
+- [x] i18n — `bonus.*`, `hud.timer`, `hud.multiplier` (en/ko)
+- [x] Jest — `bonusGame.test.ts` (트리거·점수·진행 불변)
 
 #### 완료 기준
 
-- [ ] 보너스 클리어/실패 후 승진 wins·hidden wins 변화 없음
-- [ ] 보너스에서 획득한 점수만 `GameState.score`에 가산
-- [ ] 보너스 중 game over 시에도 커리어 진행 유지 (선택: 보너스만 종료 vs 일반 game over — **기본: 보너스만 종료**)
+- [x] 보너스 클리어/실패 후 승진 wins·hidden wins 변화 없음
+- [x] 보너스에서 획득한 점수만 `GameState.score`에 가산 (`exitBonus`)
+- [x] 보너스 중 보드 가득 참 시 보너스만 종료 (game over 아님)
 
-**관련 파일**: `bonusGame.ts`, `lifecycle.ts`, `GameScreen.tsx`, `BonusGameOverlay.tsx`, `HudPanel.tsx`
+**관련 파일**: `bonusGame.ts`, `lifecycle.ts`, `engine.ts`, `GameScreen.tsx`, `BonusGameOverlay.tsx`, `HudPanel.tsx`, `useGameLoop.ts`
 
 ---
 
@@ -934,27 +934,27 @@ type LeaderboardEntry = {
 
 | 모듈 | 변경 | 상태 |
 |------|------|------|
-| `game/types.ts` | `stageLineTargetOverride`, `gravityTierOverride` | ✅ 8b |
+| `game/types.ts` | `stageLineTargetOverride`, `gravityTierOverride`, `mode`, `bonus` | ✅ 8a·8b |
 | `game/lifecycle.ts` | hidden stage modifiers on `goToCampaignStage` | ✅ 8b |
 | `career/*` | phase, chairman, hidden path, storage migration | ✅ 8b |
 | `leaderboard/*` | chairman entry + avatarId persist | ✅ 8c |
 | `GameScreen.tsx` | promotion / hidden / chairman save 분기 | ✅ 8b·8c |
 | `CareerScreen.tsx` | 잠금·unlock 숨김 노드 | ✅ 8b |
-| `game/bonusGame.ts` | bonus mode, snapshot restore | ⬜ 8a |
-| `BonusGameOverlay.tsx` | bonus UI | ⬜ 8a |
+| `game/bonusGame.ts` | bonus mode, snapshot restore | ✅ 8a |
+| `BonusGameOverlay.tsx` | bonus UI | ✅ 8a |
 
 ### Phase 8 — 테스트
 
 - [x] `hiddenStages.test.ts`, `career.test.ts` (hidden·chairman flow)
 - [x] `leaderboard.test.ts` (initials, sort, cap, avatar fallback)
-- [ ] `bonusGame.test.ts` (8a)
-- **현재**: `npm test` — **52 tests** pass
+- [x] `bonusGame.test.ts` (8a)
+- **현재**: `npm test` — **61 tests** pass
 
 ### Phase 8 — 구현 순서
 
 1. ~~**8b**~~ — 숨김 스테이지 · 회장 승진 ✅
 2. ~~**8c**~~ — 리더보드 · 이니셜 · 아바타 · 리셋 ✅
-3. **8a** — 보너스 게임 (남은 작업)
+3. ~~**8a**~~ — 보너스 게임 ✅
 
 ---
 
@@ -977,7 +977,7 @@ type LeaderboardEntry = {
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test                    # 52 tests
+npm test                    # 61 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
