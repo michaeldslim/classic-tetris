@@ -36,7 +36,7 @@ import { theme } from '../theme/colors';
 import { AchievementToast } from './AchievementToast';
 import { BoardView } from './BoardView';
 import { BonusGameOverlay } from './BonusGameOverlay';
-import { ChairmanSaveOverlay } from './ChairmanSaveOverlay';
+import { ChairmanSaveModal } from './ChairmanSaveModal';
 import { GameOverlay } from './GameOverlay';
 import { GestureTutorial, GESTURE_TUTORIAL_HEIGHT } from './GestureTutorial';
 import { PlayerStatusBar } from './PlayerStatusBar';
@@ -74,6 +74,7 @@ function dispatchCareerStage(
 
 type GameScreenProps = {
   active?: boolean;
+  forceResumeToken?: number;
   onOpenSettings: () => void;
   onPauseChange: (paused: boolean) => void;
   onGameOverChange: (gameOver: boolean) => void;
@@ -81,6 +82,7 @@ type GameScreenProps = {
 
 export function GameScreen({
   active = true,
+  forceResumeToken = 0,
   onOpenSettings,
   onPauseChange,
   onGameOverChange,
@@ -331,6 +333,8 @@ export function GameScreen({
 
   const handlePauseToggle = useCallback(() => {
     if (
+      showChairmanSaveOverlay ||
+      showPromotionOverlay ||
       state.gameOver ||
       (state.stageCleared && state.mode === 'campaign') ||
       state.campaignComplete ||
@@ -346,7 +350,16 @@ export function GameScreen({
       }
       return !value;
     });
-  }, [state.gameOver, state.stageCleared, state.campaignComplete, state.mode, bonusPhase]);
+  }, [
+    showChairmanSaveOverlay,
+    showPromotionOverlay,
+    state.gameOver,
+    state.stageCleared,
+    state.campaignComplete,
+    state.mode,
+    bonusPhase,
+    dispatch,
+  ]);
 
   const handleBonusStart = useCallback(() => {
     setBonusPhase('none');
@@ -369,6 +382,16 @@ export function GameScreen({
     state.gameOver ? handleGameOverRestart : handleRetryStage,
     !inputDisabled,
   );
+
+  useEffect(() => {
+    if (forceResumeToken <= 0) {
+      return;
+    }
+
+    setPaused(false);
+    softDropActiveRef.current = false;
+    dispatch({ type: 'DAS', direction: 0 });
+  }, [forceResumeToken, dispatch]);
 
   useEffect(() => {
     onPauseChange(paused);
@@ -454,6 +477,9 @@ export function GameScreen({
         if (saved) {
           void finalizeChairmanClear();
           setShowChairmanSaveOverlay(false);
+          setPaused(false);
+          softDropActiveRef.current = false;
+          dispatch({ type: 'DAS', direction: 0 });
         }
       });
     },
@@ -462,6 +488,7 @@ export function GameScreen({
       finalizeChairmanClear,
       saveChairmanEntry,
       settings.playerAvatarId,
+      dispatch,
     ],
   );
 
@@ -812,12 +839,6 @@ export function GameScreen({
                       playerAvatarId={settings.playerAvatarId}
                       onComplete={handlePromotionComplete}
                     />
-                    <ChairmanSaveOverlay
-                      visible={showChairmanSaveOverlay}
-                      score={chairmanSaveScore}
-                      playerAvatarId={settings.playerAvatarId}
-                      onSave={handleChairmanSave}
-                    />
                   </View>
 
                   <GestureTutorial width={gameClusterWidth} />
@@ -839,6 +860,13 @@ export function GameScreen({
           onComplete={handleAchievementComplete}
         />
       ) : null}
+
+      <ChairmanSaveModal
+        visible={showChairmanSaveOverlay}
+        score={chairmanSaveScore}
+        playerAvatarId={settings.playerAvatarId}
+        onSave={handleChairmanSave}
+      />
     </SafeAreaView>
   );
 }
