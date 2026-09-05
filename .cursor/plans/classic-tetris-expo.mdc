@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~8 완료)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~8 완료, 8d 폴리시·버그픽스)
 alwaysApply: false
 ---
 
@@ -14,7 +14,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 - **측면 HUD** (점수, 레벨, 스테이지, 라인, NEXT)
 - **스와이프 전용** 컨트롤 (탭 회전 · ←→ 이동 · ↓ 홀드 소프트드롭 · ↓ 스와이프 하드드롭) + 하단 **제스처 튜토리얼**
 - **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
-- **승진 모드 ON** — intern → ceo 승진 + ceo 후 **숨김 13스테이지** → **회장** → 리더보드 저장 → 승진 리셋 ✅ (Phase 8b·8c)
+- **승진 모드 ON** — intern → ceo 승진 + ceo 후 **숨김 13스테이지** → **회장** → 리더보드 저장 → 승진 리셋 ✅ (Phase 8b·8c·8d Modal UI)
 - **승진 모드 OFF** — 승진·숨김·회장·리더보드 없이 **일반 점수 캠페인** (하이스코어·업적)
 - **보너스 게임** ✅ (Phase 8a) — 승진과 무관, 점수 올리기용 중간 미니게임 (60s · 10줄 · 2× 배율)
 - 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
@@ -33,7 +33,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어·리더보드) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **61 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard, bonusGame) |
+| 테스트 | Jest — **63 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard, bonusGame) |
 
 ### 빌드 & 실행
 
@@ -74,12 +74,12 @@ classic-tetris/
 ├── src/
 │   ├── game/
 │   │   ├── types.ts           # GameState (+ stageLineTargetOverride, gravityTierOverride)
-│   │   ├── tetrominoes.ts     # 7종 shape + color helper
+│   │   ├── tetrominoes.ts     # 7종 shape + isValidTetrominoType
 │   │   ├── board.ts           # collision, merge, clearLines, buildDisplayBoard
 │   │   ├── srs.ts             # Guideline SRS wall kick tables
 │   │   ├── bag.ts             # 7-bag randomizer
 │   │   ├── speed.ts           # NES gravity table, DAS/ARR constants
-│   │   ├── lifecycle.ts       # spawn, lock, score, createInitialState, goToCampaignStage
+│   │   ├── lifecycle.ts       # spawn, lock, score, reconcileGameState, goToCampaignStage
 │   │   ├── actions.ts         # LEFT/RIGHT/ROTATE/HOLD/DAS/gravity step
 │   │   ├── engine.ts          # reduce, tick
 │   │   ├── scoring.ts         # computeLineClearScore
@@ -115,17 +115,19 @@ classic-tetris/
 │   │       └── ko.ts          # Korean strings
 │   ├── audio/
 │   │   ├── sounds.ts          # asset map (BGM1/BGM2, SFX ids)
-│   │   └── GameAudioContext.tsx # BGM loop + SFX, pause on overlay
+│   │   └── GameAudioContext.tsx # BGM loop + SFX, pause on overlay (preload 제거 — 실기기 localhost 이슈)
 │   ├── constants/
 │   │   └── avatars.ts         # AvatarId registry + DEFAULT_PLAYER_AVATAR_ID
 │   ├── feedback/
 │   │   └── haptics.ts         # expo-haptics wrappers
 │   ├── components/
 │   │   ├── StartScreen.tsx    # 홈 — 아바타, 타이틀, 커리어/하이스코어/리더보드 배지, Start
-│   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 커리어 모드, 리더보드 링크
+│   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 커리어 모드, 리더보드 링크 (+ __DEV__ 이니셜 미리보기)
 │   │   ├── CareerScreen.tsx   # 직급 트리, 승진·숨김·회장 경로 (🔒 서브 노드)
 │   │   ├── LeaderboardScreen.tsx # 회장 클리어 리더보드 (아바타·이니셜·점수·날짜)
-│   │   ├── ChairmanSaveOverlay.tsx # 회장 클리어 후 이니셜 입력 + 아바타 미리보기
+│   │   ├── ChairmanSaveOverlay.tsx # 회장 이니셜 폼 (KeyboardAvoidingView, overlay/modal presentation)
+│   │   ├── ChairmanSaveModal.tsx   # RN Modal 래퍼 — 실제 승진·DEV 미리보기 공통
+│   │   ├── DevChairmanPreviewOverlay.tsx # __DEV__ 설정 미리보기 (production 미포함)
 │   │   BonusGameOverlay.tsx   # Phase 8a — 보너스 진입·결과 UI
 │   │   ├── GameScreen.tsx     # 게임 + 커리어/점수 연동, achievement toast
 │   │   ├── GameOverlay.tsx    # Pause / Game Over / Stage Clear / Campaign Complete
@@ -150,7 +152,7 @@ classic-tetris/
 │   │   └── useKeyboardControls.ts # web keyboard
 │   └── theme/
 │       └── colors.ts          # theme + tetrominoColors
-├── __tests__/                 # Jest (board, bag, scoring, campaign, career, hiddenStages, score, engine, leaderboard)
+├── __tests__/                 # Jest (63 tests)
 ├── eas.json                   # EAS Build profiles
 └── package.json
 ```
@@ -235,7 +237,7 @@ classic-tetris/
 └─────────────────────────────────────┘
 ```
 
-- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진/숨김 진행률; `getCareerStageTarget()`으로 다음 목표; ceo 후 hidden phase; 회장 클리어 → `ChairmanSaveOverlay` → 리더보드 저장 → `finalizeChairmanClear`
+- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진/숨김 진행률; `getCareerStageTarget()`으로 다음 목표; ceo 후 hidden phase; 회장 클리어 → `PromotionOverlay` → **`ChairmanSaveModal`** (키보드 대응) → 리더보드 저장 → `finalizeChairmanClear`
 - **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어; L1 S1부터 일반 캠페인 순차 진행; `recordStageResult` 미호출 (승진·숨김·리더보드 무관); 점수 업적 토스트 (1k–50k)
 - HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
 - `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음**)
@@ -259,6 +261,8 @@ classic-tetris/
 Provider 순서: `SafeAreaProvider` → `SettingsProvider` → `ScoreProvider` → `CareerProvider` → `LeaderboardProvider` → `GameAudioProvider`
 
 BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `setBgmPaused(true)`
+
+**DEV 전용** (`__DEV__`): `SettingsScreen` 하단 → 「회장 이니셜 입력 미리보기」→ `DevChairmanPreviewOverlay` (`ChairmanSaveModal` 재사용). **production 빌드에서는 tree-shake되어 UI·코드 경로 없음.**
 
 ### HudPanel 구현 방식
 
@@ -346,7 +350,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
                                   useGameLoop (rAF)
 ```
 
-- **engine.ts**: `reduce(state, action)`, `tick(state, dt)` — gravity + DAS
+- **engine.ts**: `reduce(state, action)`, `tick(state, dt)` — gravity + DAS; tick 시작 시 `reconcileGameState()`로 desync 복구
 - **useGameLoop.ts**: rAF tick, `gameOver` 시 loop 정지
 - **BoardView**: locked board + active piece + ghost layer (`Cell ghost` prop)
 - UI 컴포넌트는 **절대** 보드 배열을 직접 mutate하지 않음
@@ -699,7 +703,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 |------|------|
 | `src/hooks/useGameEngine.ts` | 순수 state reducer dispatch |
 | `src/hooks/useGameFeedback.ts` | committed `pendingSpawn` 전환 후 `playSfx('dropped')` |
-| `src/audio/GameAudioContext.tsx` | dropped player, `playSfx`, `preload`, `setAudioModeAsync` |
+| `src/audio/GameAudioContext.tsx` | dropped player, `playSfx`, `setAudioModeAsync` (~~`preload`~~ 제거 — Phase 8d) |
 | `src/audio/sounds.ts` | `SOUND_ASSETS.dropped` |
 | `src/game/speed.ts` | `LOCK_SPAWN_DELAY_MS` (450ms — lock SFX 후 spawn 지연) |
 
@@ -722,7 +726,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 - [x] Pixel cold start → START → **첫 피스 lock**에서 `dropped.mp3` audible (Pixel_10 확인)
 - [ ] 2번째 이후 lock, line clear, game over SFX 회귀 없음
 - [x] SFX volume 0 일 때 여전히 무음
-- [x] `npm test` pass (52 tests)
+- [x] `npm test` pass (63 tests)
 
 **실기기 확인일**: 2026-08-27 — Galaxy SM-F731U1 및 Pixel_10 첫 lock SFX 정상.
 
@@ -730,7 +734,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 
 ## Phase 8 — 보너스 게임 · 숨겨진 스테이지 · 회장
 
-**상태**: **8a ✅ · 8b ✅ · 8c ✅** (Phase 8 완료)
+**상태**: **8a ✅ · 8b ✅ · 8c ✅ · 8d ✅** (Phase 8 완료 + 폴리시)
 
 **목표**: 커리어 모드에 **점수 전용 보너스 게임**(8a)과 **승진 구간 사이 잠긴 숨김 스테이지**(8b), **회장 리더보드**(8c)를 완성한다.
 
@@ -755,7 +759,7 @@ promotion  ──(ceo 승진)──►  hidden  ──(전 숨김 클리어)─�
 - `CareerState`: `phase: 'promotion' | 'hidden' | 'complete'`, `hiddenWins: number` (0–13)
 - `CareerRank`: `'chairman'` (9번째·최종)
 - ceo 승진 → `phase: 'hidden'`; 13/13 → `chairman` + `phase: 'complete'`
-- `ChairmanSaveOverlay` → 리더보드 저장 → `finalizeChairmanClear()` (intern 리셋, `highestRankAchieved`·리더보드 유지)
+- `ChairmanSaveModal` → 리더보드 저장 → `finalizeChairmanClear()` (intern 리셋, `highestRankAchieved`·리더보드 유지)
 - legacy ceo 세이브 → `phase: 'hidden'` 자동 마이그레이션 (`careerStorage`)
 
 ---
@@ -830,7 +834,7 @@ staff H1 → assistant H1 → manager H1→H2 → deputy H1→H2 → director H1
 
 1. **promotion phase** — 기존과 동일. ceo 승진 시 `phase = 'hidden'`, `rank`는 ceo 유지
 2. **hidden phase** — `getHiddenStagePosition(hiddenWins)`만 검증. 클리어 시 `hiddenWins++`. 13/13 → chairman 승진
-3. **chairman** — `phase = 'complete'`. `PromotionOverlay` → `ChairmanSaveOverlay`
+3. **chairman** — `phase = 'complete'`. `PromotionOverlay` → `ChairmanSaveModal`
 4. **complete 후** — 리더보드 저장 → `finalizeChairmanClear()` (intern 리셋). `highestRankAchieved = 'chairman'` 유지
 
 #### UI / 사다리
@@ -886,22 +890,23 @@ type LeaderboardEntry = {
 
 #### UX
 
-- [x] `PromotionOverlay` (chairman) → `ChairmanSaveOverlay` (이니셜 3자 필수 + 아바타 미리보기)
+- [x] `PromotionOverlay` (chairman) → **`ChairmanSaveModal`** (RN Modal + `KeyboardAvoidingView` — 모바일 키보드가 입력창 가리지 않음)
+- [x] 이니셜 3자 필수 + 아바타·점수 미리보기; 키보드 표시 시 아바타/점수 영역 축소
 - [x] `LeaderboardScreen` — 순위 · 아바타 · 이니셜 · 회장 · 점수 · 날짜
 - [x] 진입: **설정 → 회장 리더보드**; 홈 **「회장 리더보드 · N명」** (기록 있을 때)
-- [x] i18n — `leaderboard.title`, `leaderboard.save.*`, `leaderboard.empty.*`
+- [x] i18n — `leaderboard.title`, `leaderboard.save.*` (含 `devCancel` — DEV 미리보기 닫기), `leaderboard.empty.*`
 
 #### 작업
 
 - [x] `src/leaderboard/` — types, leaderboardProgress, storage, LeaderboardProvider
-- [x] `ChairmanSaveOverlay.tsx`, `LeaderboardScreen.tsx`
-- [x] `App.tsx` — LeaderboardProvider, overlay=`leaderboard`
-- [x] `GameScreen` — chairman save → `finalizeChairmanClear`
+- [x] `ChairmanSaveOverlay.tsx`, `ChairmanSaveModal.tsx`, `LeaderboardScreen.tsx`
+- [x] `App.tsx` — LeaderboardProvider, overlay=`leaderboard`, __DEV__ 미리보기
+- [x] `GameScreen` — chairman save → `finalizeChairmanClear`; `SafeAreaView` 레벨 Modal
 - [x] Jest — `leaderboard.test.ts`
 
 #### 완료 기준
 
-- [x] chairman 클리어 후 이니셜 입력 필수 → 저장 후 커리어 리셋
+- [x] chairman 클리어 후 이니셜 입력 필수 → Modal에서 입력 → 저장 후 커리어 리셋
 - [x] 리더보드에 아바타·회장·점수 표시
 - [x] 리셋 후 intern · promotion phase 재시작
 
@@ -935,12 +940,12 @@ type LeaderboardEntry = {
 | 모듈 | 변경 | 상태 |
 |------|------|------|
 | `game/types.ts` | `stageLineTargetOverride`, `gravityTierOverride`, `mode`, `bonus` | ✅ 8a·8b |
-| `game/lifecycle.ts` | hidden stage modifiers on `goToCampaignStage` | ✅ 8b |
+| `game/lifecycle.ts` | hidden stage modifiers, **`reconcileGameState`** (frozen/missing piece heal) | ✅ 8b·8d |
 | `career/*` | phase, chairman, hidden path, storage migration | ✅ 8b |
 | `leaderboard/*` | chairman entry + avatarId persist | ✅ 8c |
 | `GameScreen.tsx` | promotion / hidden / chairman save 분기 | ✅ 8b·8c |
 | `CareerScreen.tsx` | 잠금·unlock 숨김 노드 | ✅ 8b |
-| `game/bonusGame.ts` | bonus mode, snapshot restore | ✅ 8a |
+| `game/bonusGame.ts` | bonus mode, snapshot restore, **timer 종료 시 active 피스 보드 merge** | ✅ 8a·8d |
 | `BonusGameOverlay.tsx` | bonus UI | ✅ 8a |
 
 ### Phase 8 — 테스트
@@ -948,13 +953,53 @@ type LeaderboardEntry = {
 - [x] `hiddenStages.test.ts`, `career.test.ts` (hidden·chairman flow)
 - [x] `leaderboard.test.ts` (initials, sort, cap, avatar fallback)
 - [x] `bonusGame.test.ts` (8a)
-- **현재**: `npm test` — **61 tests** pass
+- [x] `engine.test.ts` — `reconcileGameState` (8d)
+- **현재**: `npm test` — **63 tests** pass
 
 ### Phase 8 — 구현 순서
 
 1. ~~**8b**~~ — 숨김 스테이지 · 회장 승진 ✅
 2. ~~**8c**~~ — 리더보드 · 이니셜 · 아바타 · 리셋 ✅
 3. ~~**8a**~~ — 보너스 게임 ✅
+4. ~~**8d**~~ — 엔진·오디오·회장 Modal UI 폴리시 ✅
+
+---
+
+### Phase 8d — 엔진·오디오·회장 UI 폴리시 ✅ (완료)
+
+**목표**: 실기기에서 보고된 **블록 멈춤**, **SFX preload 실패**, **회장 이니셜 키보드 가림** 수정.
+
+#### 엔진 — frozen / missing piece
+
+- [x] `reconcileGameState()` (`lifecycle.ts`) — 매 tick 시작 시 inconsistent state 복구
+  - `active` + `pendingSpawn` / `lineClear` 동시 존재 → lock
+  - live gameplay인데 active 없음 → `spawnNextPiece`
+  - invalid tetromino type → 재스폰
+- [x] `getRotatedShape()` — shape 배열 **copy** 후 rotate (공유 참조 오염 방지)
+- [x] `isValidTetrominoType()` (`tetrominoes.ts`)
+- [x] `bonusGame.tickBonusTimer` — 타이머 종료 시 공중 active 피스를 보드에 merge 후 종료
+- [x] Jest — `engine.test.ts` `reconcileGameState` describe
+
+#### 오디오 — 실기기 preload
+
+- [x] `GameAudioContext` 모듈 최상단 `preload()` **제거**
+- **원인**: dev 빌드 실기기에서 Metro `localhost` URL로 HTTP fetch → `UnknownHostException`
+- **대안**: `createAudioPlayer()`가 동일 asset 로드 (Phase 7 Samsung retry 유지)
+
+#### 회장 이니셜 UI — Modal + keyboard
+
+- [x] `ChairmanSaveModal.tsx` — RN `Modal` + `SafeAreaView` + `ChairmanSaveOverlay` (`presentation="modal"`)
+- [x] `ChairmanSaveOverlay` — `KeyboardAvoidingView`, `ScrollView`, 키보드 시 아바타/점수 숨김, `onCancel` optional
+- [x] `GameScreen` — in-game cluster가 아닌 **`SafeAreaView` 레벨** Modal; 승진/이니셜 중 pause 토글 비활성
+- [x] `DevChairmanPreviewOverlay` + `SettingsScreen` DEV 섹션 — **`__DEV__` 전용** 미리보기 (production 무영향)
+
+#### 완료 기준
+
+- [x] Android 실기기 — 회장 이니셜 Modal 표시, 키보드 올려도 입력창 visible
+- [x] DEV 미리보기 — 설정에서 Modal 열기/닫기 (개발 빌드만)
+- [x] `npm test` — 63 tests pass
+
+**관련 파일**: `lifecycle.ts`, `engine.ts`, `board.ts`, `tetrominoes.ts`, `bonusGame.ts`, `GameAudioContext.tsx`, `ChairmanSaveOverlay.tsx`, `ChairmanSaveModal.tsx`, `DevChairmanPreviewOverlay.tsx`, `GameScreen.tsx`, `App.tsx`, `SettingsScreen.tsx`
 
 ---
 
@@ -969,7 +1014,9 @@ type LeaderboardEntry = {
 7. **중력**: NES frame table × `GRAVITY_SCALE` 2 → ms (`speed.ts`); 캠페인 `getGravityTier(stage)`로 스테이지 4+ 가속
 8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action; **↓ drag hold** = `SOFT_DROP` (ARR 95ms via `useGameLoop`)
 9. **네이티브 리소스**: `app.json` 변경 → `npx expo prebuild --clean` → `expo run:android`
-10. **Expo docs**: SDK 57 — https://docs.expo.dev/versions/v57.0.0/
+10. **회장 이니셜**: `ChairmanSaveModal` (RN Modal) — overlay `absoluteFill`만으로는 Android Modal 내부 0px 렌더 가능; `presentation="modal"` + `flex:1` 사용
+11. **DEV 미리보기**: `__DEV__` 게이트 — production APK/AAB에 DEV UI 없음
+12. **Expo docs**: SDK 57 — https://docs.expo.dev/versions/v57.0.0/
 
 ---
 
@@ -977,7 +1024,7 @@ type LeaderboardEntry = {
 
 ```bash
 cd /Users/mikelim/Github/classic-tetris
-npm test                    # 61 tests
+npm test                    # 63 tests
 npm run android:device
 # Splash/icon 변경 시:
 # npx expo prebuild --platform android --clean
