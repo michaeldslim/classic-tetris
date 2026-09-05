@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Platform } from 'react-native';
-import { createAudioPlayer, preload, setAudioModeAsync } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { getBgmSource, SOUND_ASSETS, type SfxId } from './sounds';
 import {
   getLineClearSfxRate,
@@ -28,10 +28,6 @@ const GameAudioContext = createContext<GameAudioContextValue | null>(null);
 const NEEDS_FIRST_LOCK_RETRY =
   Platform.OS === 'android' &&
   Platform.constants.Manufacturer.toLowerCase() === 'samsung';
-
-void preload(SOUND_ASSETS.gameOver);
-void preload(SOUND_ASSETS.lineMatched);
-void preload(SOUND_ASSETS.dropped);
 
 const SFX_PLAYER_OPTIONS = {
   keepAudioSessionActive: true,
