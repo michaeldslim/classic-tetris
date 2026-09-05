@@ -1,4 +1,5 @@
 import { createInitialState, reduce, tick } from '../src/game/engine';
+import { reconcileGameState } from '../src/game/lifecycle';
 import { getLineClearDuration } from '../src/game/lineClearFx';
 
 describe('engine line clear', () => {
@@ -67,5 +68,39 @@ describe('engine line clear', () => {
     expect(next.score).toBe(3200);
     expect(next.gameOver).toBe(false);
     expect(next.active).not.toBeNull();
+  });
+});
+
+describe('reconcileGameState', () => {
+  it('locks an active piece when pendingSpawn was left set', () => {
+    let state = createInitialState();
+    state = {
+      ...state,
+      active: { type: 'T', x: 2, y: 8, rotation: 0 },
+      pendingSpawn: true,
+      spawnDelayMs: 200,
+    };
+
+    const reconciled = reconcileGameState(state);
+
+    expect(reconciled.active).toBeNull();
+    expect(reconciled.pendingSpawn).toBe(true);
+    expect(reconciled.board[8]![3]).toBe('T');
+  });
+
+  it('spawns a piece when gameplay is live but no piece is active', () => {
+    let state = createInitialState();
+    state = {
+      ...state,
+      active: null,
+      pendingSpawn: false,
+      spawnDelayMs: 0,
+      lineClear: null,
+    };
+
+    const reconciled = reconcileGameState(state);
+
+    expect(reconciled.active).not.toBeNull();
+    expect(reconciled.pendingSpawn).toBe(false);
   });
 });

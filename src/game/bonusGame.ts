@@ -1,5 +1,5 @@
 import { createShuffledBag, drawFromBag } from './bag';
-import { createEmptyBoard } from './board';
+import { createEmptyBoard, mergePiece } from './board';
 import { spawnNextPiece } from './spawn';
 import { computeLineClearScore } from './scoring';
 import type { GameState } from './types';
@@ -199,9 +199,26 @@ export function tickBonusTimer(state: GameState, dt: number): GameState {
   const timeRemainingMs = Math.max(0, state.bonus.timeRemainingMs - dt);
 
   if (timeRemainingMs <= 0) {
+    let nextState = state;
+
+    if (nextState.active) {
+      const { type, x, y, rotation } = nextState.active;
+      nextState = {
+        ...nextState,
+        board: mergePiece(nextState.board, type, rotation, x, y),
+        active: null,
+        pendingSpawn: false,
+        spawnDelayMs: 0,
+        lineClear: null,
+      };
+    }
+
     return {
-      ...state,
+      ...nextState,
       active: null,
+      pendingSpawn: false,
+      spawnDelayMs: 0,
+      lineClear: null,
       bonus: {
         ...state.bonus,
         timeRemainingMs: 0,

@@ -12,6 +12,7 @@ import {
   createStateAtCampaignPosition,
   getGravityInterval,
   goToCampaignStage,
+  reconcileGameState,
 } from './lifecycle';
 import { enterBonus, exitBonus, tickBonusTimer } from './bonusGame';
 import { getLineClearDuration } from './lineClearFx';
@@ -33,6 +34,8 @@ export { getGhostPiece } from './actions';
 export type { ActivePiece, GameState } from './types';
 
 export function tick(state: GameState, dt: number): GameState {
+  state = reconcileGameState(state);
+
   if (state.mode === 'bonus' && state.bonus && !state.bonus.ended) {
     state = tickBonusTimer(state, dt);
     if (state.bonus?.ended) {

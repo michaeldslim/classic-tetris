@@ -10,7 +10,62 @@ import { finalizeBonusLineClear } from './bonusGame';
 import { computeLineClearScore } from './scoring';
 import { spawnNextPiece } from './spawn';
 import { LOCK_SPAWN_DELAY_MS } from './speed';
+import { isValidTetrominoType } from './tetrominoes';
 import type { GameState } from './types';
+
+function isLiveGameplay(state: GameState): boolean {
+  if (state.gameOver || state.campaignComplete) {
+    return false;
+  }
+
+  if (state.mode === 'campaign' && state.stageCleared) {
+    return false;
+  }
+
+  if (state.mode === 'bonus' && state.bonus?.ended) {
+    return false;
+  }
+
+  return true;
+}
+
+/** Heal inconsistent piece/spawn state that can leave a frozen or missing piece. */
+export function reconcileGameState(state: GameState): GameState {
+  if (state.active && !isValidTetrominoType(state.active.type)) {
+    return spawnNextPiece({
+      ...state,
+      active: null,
+      pendingSpawn: false,
+      spawnDelayMs: 0,
+    });
+  }
+
+  if (state.active && state.pendingSpawn) {
+    return lockActivePiece({
+      ...state,
+      pendingSpawn: false,
+      spawnDelayMs: 0,
+    });
+  }
+
+  if (state.active && state.lineClear) {
+    return lockActivePiece({
+      ...state,
+      lineClear: null,
+    });
+  }
+
+  if (
+    isLiveGameplay(state) &&
+    !state.active &&
+    !state.pendingSpawn &&
+    !state.lineClear
+  ) {
+    return spawnNextPiece(state);
+  }
+
+  return state;
+}
 
 function resetDasState(state: GameState): Pick<
   GameState,

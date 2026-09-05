@@ -19,7 +19,7 @@ export function getRotatedShape(
   type: TetrominoType,
   rotation: number,
 ): number[][] {
-  let shape = tetrominoShapes[type];
+  let shape = tetrominoShapes[type].map((row) => [...row]);
   for (let i = 0; i < rotation % 4; i++) {
     shape = rotateShape(shape);
   }

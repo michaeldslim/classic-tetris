@@ -47,3 +47,7 @@ export const tetrominoShapes: Record<TetrominoType, number[][]> = {
 };
 
 export const tetrominoTypes: TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+
+export function isValidTetrominoType(type: unknown): type is TetrominoType {
+  return typeof type === 'string' && tetrominoTypes.includes(type as TetrominoType);
+}
