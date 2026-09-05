@@ -207,6 +207,7 @@ export const ko: TranslationSchema = {
       initialsPlaceholder: 'ABC',
       initialsHint: '영문 3글자 (A–Z)',
       button: '저장하고 계속',
+      devCancel: '미리보기 닫기',
     },
   },
 };

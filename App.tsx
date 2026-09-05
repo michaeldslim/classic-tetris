@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GameAudioProvider, useGameAudio } from './src/audio/GameAudioContext';
 import { CareerProvider } from './src/career/CareerProvider';
@@ -11,6 +11,7 @@ import { GameScreen } from './src/components/GameScreen';
 import { LeaderboardScreen } from './src/components/LeaderboardScreen';
 import { SettingsScreen } from './src/components/SettingsScreen';
 import { StartScreen } from './src/components/StartScreen';
+import { DevChairmanPreviewOverlay } from './src/components/DevChairmanPreviewOverlay';
 import { SettingsProvider } from './src/settings/SettingsContext';
 import { theme } from './src/theme/colors';
 
@@ -22,6 +23,8 @@ function AppRoot() {
   const [overlay, setOverlay] = useState<OverlayScreen>('home');
   const [gamePaused, setGamePaused] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [devChairmanPreviewVisible, setDevChairmanPreviewVisible] = useState(false);
+  const [forceResumeToken, setForceResumeToken] = useState(0);
 
   const effectiveOverlay: OverlayScreen = !gameStarted
     ? overlay === 'settings' || overlay === 'career' || overlay === 'leaderboard'
@@ -78,12 +81,26 @@ function AppRoot() {
     setGameOver(false);
   }, []);
 
+  const handlePreviewChairmanSave = useCallback(() => {
+    setDevChairmanPreviewVisible(true);
+    setGamePaused(false);
+    setForceResumeToken((token) => token + 1);
+  }, []);
+
+  const handleCloseDevChairmanPreview = useCallback(() => {
+    setDevChairmanPreviewVisible(false);
+    setGamePaused(false);
+    setForceResumeToken((token) => token + 1);
+  }, []);
+
   return (
-    <View style={styles.root}>
+    <>
+      <View style={styles.root}>
       {gameStarted ? (
         <View style={styles.gameLayer}>
           <GameScreen
             active={gameActive}
+            forceResumeToken={forceResumeToken}
             onOpenSettings={handleOpenSettings}
             onPauseChange={setGamePaused}
             onGameOverChange={setGameOver}
@@ -108,6 +125,9 @@ function AppRoot() {
             onOpenCareer={handleOpenCareer}
             onOpenLeaderboard={handleOpenLeaderboard}
             onCareerReset={handleCareerReset}
+            onPreviewChairmanSave={
+              __DEV__ ? handlePreviewChairmanSave : undefined
+            }
           />
         </View>
       ) : null}
@@ -126,7 +146,15 @@ function AppRoot() {
           <LeaderboardScreen onBack={handleCloseLeaderboard} />
         </View>
       ) : null}
-    </View>
+      </View>
+
+      {__DEV__ ? (
+        <DevChairmanPreviewOverlay
+          visible={devChairmanPreviewVisible}
+          onClose={handleCloseDevChairmanPreview}
+        />
+      ) : null}
+    </>
   );
 }
 

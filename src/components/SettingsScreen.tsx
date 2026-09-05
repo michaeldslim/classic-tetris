@@ -18,6 +18,7 @@ type SettingsScreenProps = {
   onOpenCareer: () => void;
   onOpenLeaderboard: () => void;
   onCareerReset: () => void;
+  onPreviewChairmanSave?: () => void;
 };
 
 function SettingsScreenComponent({
@@ -25,6 +26,7 @@ function SettingsScreenComponent({
   onOpenCareer,
   onOpenLeaderboard,
   onCareerReset,
+  onPreviewChairmanSave,
 }: SettingsScreenProps) {
   const {
     settings,
@@ -229,6 +231,26 @@ function SettingsScreenComponent({
               </View>
             ) : null}
           </View>
+
+          {onPreviewChairmanSave ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>DEV</Text>
+              <Text style={styles.careerResetDescription}>
+                회장 승진 후 이니셜 입력 화면을 바로 엽니다. (개발 빌드 전용, 게임
+                시작 없이도 가능)
+              </Text>
+              <Pressable
+                style={styles.devPreviewButton}
+                onPress={onPreviewChairmanSave}
+                accessibilityRole="button"
+                accessibilityLabel="회장 이니셜 입력 미리보기"
+              >
+                <Text style={styles.devPreviewButtonLabel}>
+                  회장 이니셜 입력 미리보기
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -399,6 +421,20 @@ const styles = StyleSheet.create({
   },
   careerResetButtonLabel: {
     color: theme.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  devPreviewButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#f0c000',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: theme.boardBackground,
+  },
+  devPreviewButtonLabel: {
+    color: '#f0c000',
     fontSize: 12,
     fontWeight: '700',
   },

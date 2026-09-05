@@ -189,6 +189,7 @@ export type TranslationSchema = {
       initialsPlaceholder: string;
       initialsHint: string;
       button: string;
+      devCancel: string;
     };
   };
 };
@@ -400,6 +401,7 @@ export const en: TranslationSchema = {
       initialsPlaceholder: 'ABC',
       initialsHint: '3 letters A–Z',
       button: 'SAVE & CONTINUE',
+      devCancel: 'Close preview',
     },
   },
 } as const satisfies TranslationSchema;
