@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   type LayoutChangeEvent,
   Pressable,
   StyleSheet,
@@ -20,6 +21,12 @@ import {
   BONUS_SCORE_MULTIPLIER,
   shouldTriggerBonus,
 } from '../game/bonusGame';
+import {
+  clearGameSession,
+  createGameSessionSnapshot,
+  saveGameSession,
+  type GameSessionSnapshot,
+} from '../game/gameStorage';
 import { BOARD_FRAME_SIZE } from '../theme/colors';
 import { BOARD_WIDTH, computeCellSize } from '../game/types';
 import type { EngineAction, GameAction } from '../game/types';
@@ -75,6 +82,7 @@ function dispatchCareerStage(
 type GameScreenProps = {
   active?: boolean;
   forceResumeToken?: number;
+  restoredSession?: GameSessionSnapshot | null;
   onOpenSettings: () => void;
   onPauseChange: (paused: boolean) => void;
   onGameOverChange: (gameOver: boolean) => void;
@@ -83,6 +91,7 @@ type GameScreenProps = {
 export function GameScreen({
   active = true,
   forceResumeToken = 0,
+  restoredSession = null,
   onOpenSettings,
   onPauseChange,
   onGameOverChange,
@@ -100,23 +109,28 @@ export function GameScreen({
   const [careerResult, setCareerResult] = useState<PromotionResult | null>(null);
   const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
   const [showChairmanSaveOverlay, setShowChairmanSaveOverlay] = useState(false);
-  const [bonusPhase, setBonusPhase] = useState<BonusPhase>('none');
-  const [pendingBonus, setPendingBonus] = useState(false);
+  const [bonusPhase, setBonusPhase] = useState<BonusPhase>(
+    restoredSession?.bonusPhase ?? 'none',
+  );
+  const [pendingBonus, setPendingBonus] = useState(restoredSession?.pendingBonus ?? false);
   const [chairmanSaveScore, setChairmanSaveScore] = useState(0);
   const [gameOverRestartReady, setGameOverRestartReady] = useState(false);
   const [achievementQueue, setAchievementQueue] = useState<ScoreAchievementId[]>([]);
   const [activeAchievement, setActiveAchievement] = useState<ScoreAchievementId | null>(null);
   const [runSetRecord, setRunSetRecord] = useState(false);
-  const lastProcessedScoreRef = useRef(0);
-  const recordedStageKey = useRef<string | null>(null);
+  const lastProcessedScoreRef = useRef(restoredSession?.state.score ?? 0);
+  const recordedStageKey = useRef<string | null>(restoredSession?.recordedStageKey ?? null);
   const recordedGameOverRun = useRef<number | null>(null);
-  const stagesClearedCountRef = useRef(0);
-  const bonusCheckStageKeyRef = useRef<string | null>(null);
+  const stagesClearedCountRef = useRef(restoredSession?.stagesClearedCount ?? 0);
+  const bonusCheckStageKeyRef = useRef<string | null>(
+    restoredSession?.bonusCheckStageKey ?? null,
+  );
   const runId = useRef(0);
   const recordStageResultRef = useRef(recordStageResult);
   recordStageResultRef.current = recordStageResult;
   const softDropActiveRef = useRef(false);
-  const { state, dispatch } = useGameEngine();
+  const sessionSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { state, dispatch } = useGameEngine(restoredSession?.state);
 
   useGameLoop(
     state,
@@ -400,6 +414,60 @@ export function GameScreen({
   useEffect(() => {
     onGameOverChange(state.gameOver);
   }, [state.gameOver, onGameOverChange]);
+
+  const persistSession = useCallback(() => {
+    if (state.gameOver || state.campaignComplete) {
+      void clearGameSession();
+      return;
+    }
+
+    void saveGameSession(
+      createGameSessionSnapshot(state, {
+        paused,
+        stagesClearedCount: stagesClearedCountRef.current,
+        recordedStageKey: recordedStageKey.current,
+        bonusCheckStageKey: bonusCheckStageKeyRef.current,
+        pendingBonus,
+        bonusPhase,
+      }),
+    );
+  }, [state, paused, pendingBonus, bonusPhase]);
+
+  useEffect(() => {
+    if (state.gameOver || state.campaignComplete) {
+      void clearGameSession();
+      return;
+    }
+
+    if (sessionSaveTimeoutRef.current) {
+      clearTimeout(sessionSaveTimeoutRef.current);
+    }
+
+    if (paused || !active) {
+      persistSession();
+      return;
+    }
+
+    sessionSaveTimeoutRef.current = setTimeout(() => {
+      persistSession();
+    }, 400);
+
+    return () => {
+      if (sessionSaveTimeoutRef.current) {
+        clearTimeout(sessionSaveTimeoutRef.current);
+      }
+    };
+  }, [state, paused, pendingBonus, bonusPhase, active, persistSession]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        persistSession();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [persistSession]);
 
   useEffect(() => {
     if (state.pendingSpawn) {
