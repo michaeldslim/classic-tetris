@@ -1,9 +1,12 @@
 import { useCallback, useState } from 'react';
 import { createInitialState, reduce } from '../game/engine';
-import type { EngineAction } from '../game/types';
+import { reconcileGameState } from '../game/lifecycle';
+import type { EngineAction, GameState } from '../game/types';
 
-export function useGameEngine() {
-  const [state, setState] = useState(createInitialState);
+export function useGameEngine(initialState?: GameState) {
+  const [state, setState] = useState(() =>
+    initialState ? reconcileGameState(initialState) : createInitialState(),
+  );
 
   const dispatch = useCallback((action: EngineAction) => {
     setState((prev) => reduce(prev, action));
