@@ -6,6 +6,9 @@ export const ko: TranslationSchema = {
   },
   home: {
     startGame: '게임 시작',
+    continueGame: '이어하기',
+    newGame: '새 게임',
+    continueHint: 'Lv.{{level}} · Stage {{stage}} · {{score}}점',
     highScore: '최고 {{score}}',
     leaderboardBadge: '회장 리더보드 · {{count}}명',
   },

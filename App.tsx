@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import {
+  clearGameSession,
+  loadGameSession,
+  type GameSessionSnapshot,
+} from './src/game/gameStorage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GameAudioProvider, useGameAudio } from './src/audio/GameAudioContext';
@@ -25,6 +30,29 @@ function AppRoot() {
   const [gameOver, setGameOver] = useState(false);
   const [devChairmanPreviewVisible, setDevChairmanPreviewVisible] = useState(false);
   const [forceResumeToken, setForceResumeToken] = useState(0);
+  const [savedSession, setSavedSession] = useState<GameSessionSnapshot | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [restoredSession, setRestoredSession] = useState<GameSessionSnapshot | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadGameSession()
+      .then((session) => {
+        if (!cancelled) {
+          setSavedSession(session);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSessionLoaded(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const effectiveOverlay: OverlayScreen = !gameStarted
     ? overlay === 'settings' || overlay === 'career' || overlay === 'leaderboard'
@@ -45,9 +73,23 @@ function AppRoot() {
     );
   }, [effectiveOverlay, gamePaused, gameOver, setBgmPaused]);
 
-  const handleStartGame = useCallback(() => {
+  const handleContinueGame = useCallback(() => {
+    if (!savedSession) {
+      return;
+    }
+
+    setRestoredSession(savedSession);
     setGameStarted(true);
     setOverlay(null);
+  }, [savedSession]);
+
+  const handleStartGame = useCallback(() => {
+    void clearGameSession().then(() => {
+      setSavedSession(null);
+      setRestoredSession(null);
+      setGameStarted(true);
+      setOverlay(null);
+    });
   }, []);
 
   const handleOpenSettings = useCallback(() => {
@@ -75,10 +117,14 @@ function AppRoot() {
   }, [gameStarted]);
 
   const handleCareerReset = useCallback(() => {
-    setGameStarted(false);
-    setOverlay('home');
-    setGamePaused(false);
-    setGameOver(false);
+    void clearGameSession().then(() => {
+      setSavedSession(null);
+      setRestoredSession(null);
+      setGameStarted(false);
+      setOverlay('home');
+      setGamePaused(false);
+      setGameOver(false);
+    });
   }, []);
 
   const handlePreviewChairmanSave = useCallback(() => {
@@ -99,8 +145,10 @@ function AppRoot() {
       {gameStarted ? (
         <View style={styles.gameLayer}>
           <GameScreen
+            key={restoredSession?.savedAt ?? 'new-game'}
             active={gameActive}
             forceResumeToken={forceResumeToken}
+            restoredSession={restoredSession}
             onOpenSettings={handleOpenSettings}
             onPauseChange={setGamePaused}
             onGameOverChange={setGameOver}
@@ -111,6 +159,8 @@ function AppRoot() {
       {effectiveOverlay === 'home' ? (
         <View style={styles.overlay}>
           <StartScreen
+            savedSession={sessionLoaded ? savedSession : null}
+            onContinue={handleContinueGame}
             onStart={handleStartGame}
             onOpenSettings={handleOpenSettings}
             onOpenLeaderboard={handleOpenLeaderboard}

@@ -4,6 +4,9 @@ export type TranslationSchema = {
   };
   home: {
     startGame: string;
+    continueGame: string;
+    newGame: string;
+    continueHint: string;
     highScore: string;
     leaderboardBadge: string;
   };
@@ -200,6 +203,9 @@ export const en: TranslationSchema = {
   },
   home: {
     startGame: 'START GAME',
+    continueGame: 'CONTINUE',
+    newGame: 'NEW GAME',
+    continueHint: 'Lv.{{level}} · Stage {{stage}} · {{score}} pts',
     highScore: 'Best {{score}}',
     leaderboardBadge: 'Chairman board · {{count}}',
   },
