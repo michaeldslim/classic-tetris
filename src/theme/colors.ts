@@ -31,7 +31,7 @@ export const tetrominoColors: Record<
   T: { fill: '#A000F0', border: '#6000A0' },
   S: { fill: '#00F000', border: '#00A000' },
   Z: { fill: '#F00000', border: '#A00000' },
-  J: { fill: '#0000F0', border: '#0000A0' },
+  J: { fill: '#5088FF', border: '#2A58C8' },
   L: { fill: '#F0A000', border: '#A06000' },
 };
 
