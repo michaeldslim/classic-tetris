@@ -1,5 +1,4 @@
 import { type Dispatch, type RefObject, useEffect, useRef } from 'react';
-import { ARR_INTERVAL_MS } from '../game/speed';
 import type { EngineAction, GameState } from '../game/types';
 
 export function useGameLoop(
@@ -54,9 +53,10 @@ export function useGameLoop(
         dispatch({ type: 'TICK', dt });
 
         if (softDropActiveRefStable.current?.current) {
+          const arrIntervalMs = current.arrIntervalMs;
           softDropAccumulator += dt;
-          while (softDropAccumulator >= ARR_INTERVAL_MS) {
-            softDropAccumulator -= ARR_INTERVAL_MS;
+          while (softDropAccumulator >= arrIntervalMs) {
+            softDropAccumulator -= arrIntervalMs;
             dispatch('SOFT_DROP');
           }
         } else {

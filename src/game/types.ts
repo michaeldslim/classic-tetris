@@ -1,4 +1,6 @@
 import type { BonusGameState, CampaignSnapshot } from './bonusGame';
+import type { GameDifficulty } from '../settings/types';
+import { DEFAULT_GAME_DIFFICULTY } from '../settings/types';
 import type { TetrominoType } from '../theme/colors';
 
 export type ActivePiece = {
@@ -47,7 +49,19 @@ export type GameState = {
   pendingSpawn: boolean;
   /** Countdown (ms) before spawnNextPiece runs after a lock. */
   spawnDelayMs: number;
+  /** Active play difficulty for this session (Phase 9). */
+  gameDifficulty: GameDifficulty;
+  gravityScale: number;
+  dasDelayMs: number;
+  arrIntervalMs: number;
 };
+
+export const DEFAULT_PLAY_TIMING = {
+  gameDifficulty: DEFAULT_GAME_DIFFICULTY,
+  gravityScale: 2,
+  dasDelayMs: 220,
+  arrIntervalMs: 95,
+} as const;
 
 export type GameAction =
   | 'LEFT'
@@ -69,7 +83,16 @@ export type EngineAction =
   | ({ type: 'NEXT_STAGE'; level?: number; stage?: number } & StageModifiers)
   | { type: 'DAS'; direction: -1 | 0 | 1 }
   | { type: 'ENTER_BONUS' }
-  | { type: 'EXIT_BONUS' };
+  | { type: 'EXIT_BONUS' }
+  | {
+      type: 'UPDATE_PLAY_PROFILE';
+      gameDifficulty: GameDifficulty;
+      gravityScale: number;
+      dasDelayMs: number;
+      arrIntervalMs: number;
+      stageLineTargetOverride?: number;
+      gravityTierOverride?: number;
+    };
 
 export type BoardCell = TetrominoType | null;
 

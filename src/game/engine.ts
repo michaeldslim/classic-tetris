@@ -97,6 +97,7 @@ export function tick(state: GameState, dt: number): GameState {
     nextState.level,
     nextState.stage,
     nextState.gravityTierOverride,
+    nextState.gravityScale,
   );
 
   while (acc >= interval) {
@@ -120,12 +121,33 @@ export function reduce(state: GameState, action: EngineAction): GameState {
     return tick(state, action.dt);
   }
 
+  if (typeof action === 'object' && action.type === 'UPDATE_PLAY_PROFILE') {
+    return {
+      ...state,
+      gameDifficulty: action.gameDifficulty,
+      gravityScale: action.gravityScale,
+      dasDelayMs: action.dasDelayMs,
+      arrIntervalMs: action.arrIntervalMs,
+      ...(action.stageLineTargetOverride !== undefined
+        ? { stageLineTargetOverride: action.stageLineTargetOverride }
+        : {}),
+      ...(action.gravityTierOverride !== undefined
+        ? { gravityTierOverride: action.gravityTierOverride }
+        : {}),
+    };
+  }
+
   if (typeof action === 'object' && action.type === 'RESTART') {
     if (action.level !== undefined && action.stage !== undefined) {
-      return createStateAtCampaignPosition(action.level, action.stage, {
-        stageLineTarget: action.stageLineTarget,
-        gravityTier: action.gravityTier,
-      });
+      return createStateAtCampaignPosition(
+        action.level,
+        action.stage,
+        {
+          stageLineTarget: action.stageLineTarget,
+          gravityTier: action.gravityTier,
+        },
+        state,
+      );
     }
     return createInitialState();
   }

@@ -23,9 +23,10 @@ export function DevChairmanPreviewOverlay({
         initials,
         score: PREVIEW_SCORE,
         avatarId: settings.playerAvatarId,
+        difficulty: settings.gameDifficulty,
       }).finally(onClose);
     },
-    [onClose, saveChairmanEntry, settings.playerAvatarId],
+    [onClose, saveChairmanEntry, settings.gameDifficulty, settings.playerAvatarId],
   );
 
   return (

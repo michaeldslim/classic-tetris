@@ -57,6 +57,7 @@ export function LeaderboardProvider({ children }: { children: ReactNode }) {
         initials,
         score: input.score,
         avatarId: input.avatarId,
+        difficulty: input.difficulty,
       }),
     };
 

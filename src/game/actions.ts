@@ -1,10 +1,6 @@
 import { isValidPosition } from './board';
 import { lockActivePiece } from './lifecycle';
 import { trySrsRotation } from './srs';
-import {
-  ARR_INTERVAL_MS,
-  DAS_DELAY_MS,
-} from './speed';
 import type { ActivePiece, GameState } from './types';
 import type { GameAction } from './types';
 
@@ -170,12 +166,15 @@ export function processDas(state: GameState, dt: number): GameState {
   let dasAccumulator = state.dasAccumulator + dt;
   let nextState = state;
 
+  const dasDelayMs = state.dasDelayMs;
+  const arrIntervalMs = state.arrIntervalMs;
+
   if (!state.dasCharged) {
-    if (dasAccumulator < DAS_DELAY_MS) {
+    if (dasAccumulator < dasDelayMs) {
       return { ...state, dasAccumulator };
     }
 
-    dasAccumulator -= DAS_DELAY_MS;
+    dasAccumulator -= dasDelayMs;
     nextState = tryHorizontalMove(state, state.dasDirection);
     if (nextState.active?.x === state.active.x) {
       return resetDas(state);
@@ -191,10 +190,10 @@ export function processDas(state: GameState, dt: number): GameState {
     nextState = { ...state, dasAccumulator };
   }
 
-  while (nextState.dasAccumulator >= ARR_INTERVAL_MS) {
+  while (nextState.dasAccumulator >= arrIntervalMs) {
     nextState = {
       ...nextState,
-      dasAccumulator: nextState.dasAccumulator - ARR_INTERVAL_MS,
+      dasAccumulator: nextState.dasAccumulator - arrIntervalMs,
     };
     const moved = tryHorizontalMove(nextState, nextState.dasDirection);
     if (moved.active?.x === nextState.active?.x) {

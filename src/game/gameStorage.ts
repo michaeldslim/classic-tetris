@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isGameDifficulty } from '../difficulty/difficultyProfile';
+import { DEFAULT_GAME_DIFFICULTY } from '../settings/types';
 import type { BonusGameState, CampaignSnapshot } from './bonusGame';
 import { reconcileGameState } from './lifecycle';
 import { isValidTetrominoType, tetrominoTypes } from './tetrominoes';
 import type { ActivePiece, GameMode, GameState, LineClearEffect } from './types';
-import { BOARD_HEIGHT, BOARD_WIDTH } from './types';
+import { BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PLAY_TIMING } from './types';
 
 const SESSION_KEY = '@classic-tetris/session';
 const SESSION_VERSION = 1;
@@ -257,6 +259,10 @@ function parseGameState(value: unknown): GameState | null {
     return null;
   }
 
+  const gameDifficulty = isGameDifficulty(raw.gameDifficulty)
+    ? raw.gameDifficulty
+    : DEFAULT_GAME_DIFFICULTY;
+
   return reconcileGameState({
     board,
     active,
@@ -291,6 +297,16 @@ function parseGameState(value: unknown): GameState | null {
     lineClear,
     pendingSpawn: raw.pendingSpawn,
     spawnDelayMs: Math.max(0, raw.spawnDelayMs),
+    gameDifficulty,
+    gravityScale: isFiniteNumber(raw.gravityScale)
+      ? raw.gravityScale
+      : DEFAULT_PLAY_TIMING.gravityScale,
+    dasDelayMs: isFiniteNumber(raw.dasDelayMs)
+      ? raw.dasDelayMs
+      : DEFAULT_PLAY_TIMING.dasDelayMs,
+    arrIntervalMs: isFiniteNumber(raw.arrIntervalMs)
+      ? raw.arrIntervalMs
+      : DEFAULT_PLAY_TIMING.arrIntervalMs,
   });
 }
 

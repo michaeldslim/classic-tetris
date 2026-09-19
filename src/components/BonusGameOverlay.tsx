@@ -2,7 +2,6 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   BONUS_DURATION_MS,
-  BONUS_LINE_TARGET,
   BONUS_SCORE_MULTIPLIER,
 } from '../game/bonusGame';
 import { useSettings } from '../settings/SettingsContext';
@@ -11,6 +10,7 @@ import { theme } from '../theme/colors';
 type BonusGameOverlayProps = {
   visible: boolean;
   phase: 'intro' | 'result';
+  lineTarget: number;
   earnedScore?: number;
   success?: boolean;
   onPrimary: () => void;
@@ -19,6 +19,7 @@ type BonusGameOverlayProps = {
 function BonusGameOverlayComponent({
   visible,
   phase,
+  lineTarget,
   earnedScore = 0,
   success = false,
   onPrimary,
@@ -52,7 +53,7 @@ function BonusGameOverlayComponent({
           </Text>
           <Text style={styles.hint}>
             {translate('bonus.rules', {
-              lines: String(BONUS_LINE_TARGET),
+              lines: String(lineTarget),
               seconds: String(durationSec),
             })}
           </Text>

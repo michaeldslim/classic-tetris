@@ -44,9 +44,11 @@ describe('leaderboard progress', () => {
       initials: 'ABC',
       score: 9000,
       avatarId: 'grandpa',
+      difficulty: 'pro',
     });
 
     expect(entries[0]?.avatarId).toBe('grandpa');
+    expect(entries[0]?.difficulty).toBe('pro');
   });
 
   it('caps stored entries at the leaderboard limit', () => {
@@ -56,6 +58,7 @@ describe('leaderboard progress', () => {
         initials: 'ABC',
         score: index,
         avatarId: 'female-1',
+        difficulty: 'casual',
       });
     }
 

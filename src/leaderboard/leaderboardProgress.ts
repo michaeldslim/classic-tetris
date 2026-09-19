@@ -2,6 +2,8 @@ import {
   DEFAULT_PLAYER_AVATAR_ID,
   resolveAvatarId,
 } from '../constants/avatars';
+import { isGameDifficulty } from '../difficulty/difficultyProfile';
+import { DEFAULT_GAME_DIFFICULTY } from '../settings/types';
 import type { LeaderboardEntry, LeaderboardState } from './types';
 
 export const MAX_LEADERBOARD_ENTRIES = 20;
@@ -17,7 +19,12 @@ export function isValidInitials(value: string): boolean {
 
 export function addLeaderboardEntry(
   entries: LeaderboardEntry[],
-  input: { initials: string; score: number; avatarId: LeaderboardEntry['avatarId'] },
+  input: {
+    initials: string;
+    score: number;
+    avatarId: LeaderboardEntry['avatarId'];
+    difficulty: LeaderboardEntry['difficulty'];
+  },
 ): LeaderboardEntry[] {
   const entry: LeaderboardEntry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
@@ -26,6 +33,7 @@ export function addLeaderboardEntry(
     rank: 'chairman',
     score: Math.max(0, Math.floor(input.score)),
     clearedAt: new Date().toISOString(),
+    difficulty: input.difficulty ?? DEFAULT_GAME_DIFFICULTY,
   };
 
   return [...entries, entry]
@@ -78,6 +86,9 @@ export function parseLeaderboardState(raw: string | null): LeaderboardState {
         initials: normalizeInitials(entry.initials).padEnd(INITIALS_LENGTH, 'A').slice(0, INITIALS_LENGTH),
         avatarId: resolveAvatarId(entry.avatarId, DEFAULT_PLAYER_AVATAR_ID),
         score: Math.floor(entry.score),
+        difficulty: isGameDifficulty(entry.difficulty)
+          ? entry.difficulty
+          : DEFAULT_GAME_DIFFICULTY,
       }));
 
     return { entries: sortLeaderboardEntries(entries) };

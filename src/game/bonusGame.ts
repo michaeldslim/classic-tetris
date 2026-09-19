@@ -1,3 +1,4 @@
+import { getBonusLineTarget } from '../difficulty/difficultyProfile';
 import { createShuffledBag, drawFromBag } from './bag';
 import { createEmptyBoard, mergePiece } from './board';
 import { spawnNextPiece } from './spawn';
@@ -13,8 +14,12 @@ export const BONUS_EVERY_N_STAGES = 4;
 /** Bonus round duration in milliseconds. */
 export const BONUS_DURATION_MS = 60_000;
 
-/** Lines to clear for a successful bonus. */
+/** Lines to clear for a successful bonus (casual default). */
 export const BONUS_LINE_TARGET = 10;
+
+function bonusLineTargetForState(state: GameState): number {
+  return getBonusLineTarget(state.gameDifficulty);
+}
 
 /** Score multiplier applied to line clears during bonus. */
 export const BONUS_SCORE_MULTIPLIER = 2;
@@ -96,7 +101,7 @@ export function enterBonus(state: GameState): GameState {
     lines: 0,
     stageCleared: false,
     gameOver: false,
-    stageLineTargetOverride: BONUS_LINE_TARGET,
+    stageLineTargetOverride: getBonusLineTarget(state.gameDifficulty),
     gravityTierOverride: undefined,
     fallAccumulator: 0,
     lineClear: null,
@@ -167,7 +172,7 @@ export function finalizeBonusLineClear(
     bonus,
   };
 
-  if (lines >= BONUS_LINE_TARGET) {
+  if (lines >= bonusLineTargetForState(state)) {
     return {
       ...clearedState,
       active: null,
@@ -223,7 +228,7 @@ export function tickBonusTimer(state: GameState, dt: number): GameState {
         ...state.bonus,
         timeRemainingMs: 0,
         ended: true,
-        success: state.bonus.lines >= BONUS_LINE_TARGET,
+        success: state.bonus.lines >= bonusLineTargetForState(state),
       },
       dasDirection: 0,
       dasAccumulator: 0,

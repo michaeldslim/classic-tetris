@@ -1,16 +1,20 @@
-import { memo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { careerRankKey } from '../career/careerLabels';
 import { useLeaderboard } from '../leaderboard/LeaderboardProvider';
 import type { LeaderboardEntry } from '../leaderboard/types';
 import { useSettings } from '../settings/SettingsContext';
+import type { GameDifficulty } from '../settings/types';
 import { theme } from '../theme/colors';
 import { PlayerAvatar } from './PlayerAvatar';
+import { ChipSelector } from './ChipSelector';
 
 type LeaderboardScreenProps = {
   onBack: () => void;
 };
+
+type LeaderboardFilter = 'all' | 'pro';
 
 function formatClearedDate(iso: string, language: string): string {
   const date = new Date(iso);
@@ -25,15 +29,29 @@ function formatClearedDate(iso: string, language: string): string {
   });
 }
 
+function difficultyLabelKey(
+  difficulty: GameDifficulty,
+): 'leaderboard.difficultyCasual' | 'leaderboard.difficultyStandard' | 'leaderboard.difficultyPro' {
+  if (difficulty === 'standard') {
+    return 'leaderboard.difficultyStandard';
+  }
+  if (difficulty === 'pro') {
+    return 'leaderboard.difficultyPro';
+  }
+  return 'leaderboard.difficultyCasual';
+}
+
 function LeaderboardEntryRow({
   entry,
   index,
   chairmanLabel,
+  difficultyLabel,
   language,
 }: {
   entry: LeaderboardEntry;
   index: number;
   chairmanLabel: string;
+  difficultyLabel: string;
   language: string;
 }) {
   return (
@@ -43,7 +61,10 @@ function LeaderboardEntryRow({
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
           <Text style={styles.initials}>{entry.initials}</Text>
-          <Text style={styles.rankBadge}>{chairmanLabel}</Text>
+          <View style={styles.badgeRow}>
+            <Text style={styles.difficultyBadge}>{difficultyLabel}</Text>
+            <Text style={styles.rankBadge}>{chairmanLabel}</Text>
+          </View>
         </View>
         <View style={styles.rowBottom}>
           <Text style={styles.score}>{entry.score.toLocaleString()}</Text>
@@ -57,7 +78,23 @@ function LeaderboardEntryRow({
 function LeaderboardScreenComponent({ onBack }: LeaderboardScreenProps) {
   const { settings, translate } = useSettings();
   const { leaderboard, loaded } = useLeaderboard();
+  const [filter, setFilter] = useState<LeaderboardFilter>('all');
   const chairmanLabel = translate(careerRankKey('chairman'));
+
+  const filterOptions = useMemo(
+    () => [
+      { value: 'all' as const, label: translate('leaderboard.filterAll') },
+      { value: 'pro' as const, label: translate('leaderboard.filterPro') },
+    ],
+    [translate],
+  );
+
+  const visibleEntries = useMemo(() => {
+    if (filter === 'pro') {
+      return leaderboard.entries.filter((entry) => entry.difficulty === 'pro');
+    }
+    return leaderboard.entries;
+  }, [filter, leaderboard.entries]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -80,19 +117,41 @@ function LeaderboardScreenComponent({ onBack }: LeaderboardScreenProps) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {loaded && leaderboard.entries.length === 0 ? (
+          {loaded && leaderboard.entries.length > 0 ? (
+            <View style={styles.filterSection}>
+              <ChipSelector
+                options={filterOptions}
+                value={filter}
+                onChange={setFilter}
+                accessibilityLabel={translate('leaderboard.title')}
+              />
+            </View>
+          ) : null}
+
+          {loaded && visibleEntries.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{translate('leaderboard.empty.title')}</Text>
-              <Text style={styles.emptyBody}>{translate('leaderboard.empty.body')}</Text>
+              <Text style={styles.emptyTitle}>
+                {leaderboard.entries.length === 0
+                  ? translate('leaderboard.empty.title')
+                  : translate('leaderboard.filterPro')}
+              </Text>
+              <Text style={styles.emptyBody}>
+                {leaderboard.entries.length === 0
+                  ? translate('leaderboard.empty.body')
+                  : translate('leaderboard.empty.body')}
+              </Text>
             </View>
           ) : (
             <View style={styles.list}>
-              {leaderboard.entries.map((entry, index) => (
+              {visibleEntries.map((entry, index) => (
                 <LeaderboardEntryRow
                   key={entry.id}
                   entry={entry}
                   index={index}
                   chairmanLabel={chairmanLabel}
+                  difficultyLabel={translate(
+                    difficultyLabelKey(entry.difficulty ?? 'casual'),
+                  )}
                   language={settings.language}
                 />
               ))}
@@ -118,70 +177,49 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.panel,
-    borderColor: theme.panelBorder,
-    borderWidth: 1,
-    borderRadius: 8,
   },
   backLabel: {
     color: theme.accent,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '600',
   },
   title: {
-    flex: 1,
-    color: theme.accent,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 2,
+    color: theme.text,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   headerSpacer: {
-    width: 36,
+    width: 40,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 24,
+    gap: 12,
   },
-  emptyCard: {
-    backgroundColor: theme.panel,
-    borderRadius: 12,
-    padding: 20,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: theme.panelBorder,
-  },
-  emptyTitle: {
-    color: theme.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  emptyBody: {
-    color: theme.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
+  filterSection: {
+    marginBottom: 4,
   },
   list: {
-    gap: 10,
+    gap: 8,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    padding: 12,
     backgroundColor: theme.panel,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     borderWidth: 1,
     borderColor: theme.panelBorder,
   },
@@ -189,9 +227,8 @@ const styles = StyleSheet.create({
     width: 24,
     color: theme.textMuted,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
-    fontVariant: ['tabular-nums'],
   },
   rowBody: {
     flex: 1,
@@ -204,33 +241,63 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   initials: {
-    color: theme.accent,
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: 4,
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  difficultyBadge: {
+    color: theme.textMuted,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
   },
   rankBadge: {
-    color: '#f0c000',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    color: theme.accent,
+    fontSize: 10,
+    fontWeight: '700',
   },
   rowBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
   },
   score: {
     color: theme.text,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
   date: {
     color: theme.textMuted,
     fontSize: 11,
-    fontWeight: '600',
+  },
+  emptyCard: {
+    padding: 20,
+    backgroundColor: theme.panel,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
+    gap: 8,
+  },
+  emptyTitle: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyBody: {
+    color: theme.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
