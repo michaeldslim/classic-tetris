@@ -1,5 +1,5 @@
 ---
-description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~8 완료, 8e 게임 세션 저장·복원)
+description: Classic Tetris — React Native + Expo + TypeScript 구현 계획 (Phase 1~8e 완료, Phase 9 플레이 난이도·A옵션 스펙 확정)
 alwaysApply: false
 ---
 
@@ -16,6 +16,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 - **캠페인 모드** — 5 Level × 5 Stage, 스테이지별 라인 목표, Stage Clear / Campaign Complete
 - **승진 모드 ON** — intern → ceo 승진 + ceo 후 **숨김 13스테이지** → **회장** → 리더보드 저장 → 승진 리셋 ✅ (Phase 8b·8c·8d Modal UI)
 - **승진 모드 OFF** — 승진·숨김·회장·리더보드 없이 **일반 점수 캠페인** (하이스코어·업적)
+- **플레이 난이도** (Phase 9 · **A옵션 확정**) — **승진 모드 ON/OFF와 독립**. 캐주얼 / 표준 / 프로 3단. **CareerState 1벌** (난이도 변경해도 직급·클리어 진행 유지). 회장 리더보드에 **클리어 시점 난이도** 저장
 - **보너스 게임** ✅ (Phase 8a) — 승진과 무관, 점수 올리기용 중간 미니게임 (60s · 10줄 · 2× 배율)
 - 게임 로직은 **React UI와 분리** (순수 TypeScript 모듈 + `requestAnimationFrame` 또는 `setInterval` tick)
 
@@ -33,7 +34,7 @@ NES/Game Boy 스타일의 **클래식 테트리스**를 Expo + React Native + Ty
 | 영속 저장 | `@react-native-async-storage/async-storage` (설정·커리어·하이스코어·리더보드·**게임 세션**) |
 | i18n | `expo-localization` + `i18n-js` — **en / ko** |
 | 오디오 | `expo-audio` — BGM (BGM1/BGM2) + SFX (drop, line, game over) |
-| 테스트 | Jest — **70 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard, bonusGame, **gameStorage**) |
+| 테스트 | Jest — **75 tests** (board, bag, scoring, campaign, career, hiddenStages, score, engine, lineClearFx, leaderboard, bonusGame, gameStorage, **difficultyProfile**) |
 
 ### 빌드 & 실행
 
@@ -106,9 +107,11 @@ classic-tetris/
 │   │   ├── scoreStorage.ts    # AsyncStorage persist
 │   │   └── ScoreProvider.tsx  # React context
 │   ├── settings/
-│   │   ├── types.ts           # AppSettings (language, BGM, volumes, avatar, career toggle)
+│   │   ├── types.ts           # AppSettings (language, BGM, volumes, avatar, career toggle, gameDifficulty)
 │   │   ├── storage.ts         # AsyncStorage persist
 │   │   └── SettingsContext.tsx # React context + translate()
+│   ├── difficulty/            # Phase 9 — getDifficultyProfile(), effective line/tier/gravity/DAS
+│   │   └── difficultyProfile.ts
 │   ├── i18n/
 │   │   ├── index.ts           # i18n-js setup, detectDeviceLanguage, t()
 │   │   └── locales/
@@ -123,7 +126,7 @@ classic-tetris/
 │   │   └── haptics.ts         # expo-haptics wrappers
 │   ├── components/
 │   │   ├── StartScreen.tsx    # 홈 — 아바타, 타이틀, 배지, **이어하기/새 게임** (세션 있을 때)
-│   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 커리어 모드, 리더보드 링크 (+ __DEV__ 이니셜 미리보기)
+│   │   ├── SettingsScreen.tsx # 언어, BGM/SFX, 아바타, 플레이 난이도, 커리어 모드, 리더보드 링크 (+ __DEV__ 이니셜 미리보기)
 │   │   ├── CareerScreen.tsx   # 직급 트리, 승진·숨김·회장 경로 (🔒 서브 노드)
 │   │   ├── LeaderboardScreen.tsx # 회장 클리어 리더보드 (아바타·이니셜·점수·날짜)
 │   │   ├── ChairmanSaveOverlay.tsx # 회장 이니셜 폼 (KeyboardAvoidingView, overlay/modal presentation)
@@ -242,8 +245,8 @@ classic-tetris/
 └─────────────────────────────────────┘
 ```
 
-- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진/숨김 진행률; `getCareerStageTarget()`으로 다음 목표; ceo 후 hidden phase; 회장 클리어 → `PromotionOverlay` → **`ChairmanSaveModal`** (키보드 대응) → 리더보드 저장 → `finalizeChairmanClear`
-- **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어; L1 S1부터 일반 캠페인 순차 진행; `recordStageResult` 미호출 (승진·숨김·리더보드 무관); 점수 업적 토스트 (1k–50k)
+- **커리어 모드 ON** (`settings.careerModeEnabled`): PlayerStatusBar = 직급 + 승진/숨김 진행률 + **난이도 배지**(Phase 9); `getCareerStageTarget()`으로 다음 목표; ceo 후 hidden phase; 회장 클리어 → `PromotionOverlay` → **`ChairmanSaveModal`** (키보드 대응) → 리더보드 저장 (**`gameDifficulty` 스냅샷**) → `finalizeChairmanClear`
+- **커리어 모드 OFF**: PlayerStatusBar = 현재 점수 + 하이스코어; L1 S1부터 일반 캠페인 순차 진행; `recordStageResult` 미호출 (승진·숨김·리더보드 무관); 점수 업적 토스트 (1k–50k); **동일 `settings.gameDifficulty`** 로 중력·스테이지 목표 적용
 - HUD는 **보드 우측** 세로 패널 (`HudPanel`, width 72)
 - `PlayerStatusBar`는 `playBlock` 상단 (보드와 **겹치지 않음**)
 - `centerColumn` = `gameCluster`(보드+HUD) + `GestureTutorial` (세로 gap 12)
@@ -673,6 +676,7 @@ BGM pause: home / settings / career / **leaderboard** / pause / game over 시 `s
 
 - [x] **Phase 8b·8c** — 숨김 스테이지 · 회장 · 리더보드 ✅
 - [x] **Phase 8a** — 보너스 게임 ✅ (→ [Phase 8a](#phase-8a--보너스-게임))
+- [ ] **Phase 9** — 플레이 난이도 (캐주얼/표준/프로) · A옵션 — [Phase 9](#phase-9--플레이-난이도-a옵션-확정)
 - [ ] **HOLD 재도입** — `GameState` + `HudPanel` MiniBoard + engine + 키보드 `C` (Phase 3에서 제거됨)
 - [ ] **테마** — 라이트/다크 앱 테마; 보드 preset (classic grey/beige vs 현재 avatar blue checker)
 - [ ] **홈 화면** — mini board preview loop; career badge + “승진 현황” shortcut; `@expo/vector-icons`로 ⚙/pause 이모지 대체
@@ -892,6 +896,7 @@ type LeaderboardEntry = {
 - AsyncStorage key: `@classic-tetris/leaderboard`
 - 상위 **20건** score 내림차순
 - `avatarId` 없는 legacy entry → `female-1` fallback
+- **Phase 9**: `difficulty?: GameDifficulty` 추가 — [Phase 9](#phase-9--플레이-난이도-a옵션-확정) (legacy → UI `casual`)
 
 #### UX
 
@@ -969,6 +974,7 @@ type LeaderboardEntry = {
 3. ~~**8a**~~ — 보너스 게임 ✅
 4. ~~**8d**~~ — 엔진·오디오·회장 Modal UI 폴리시 ✅
 5. ~~**8e**~~ — 게임 세션 저장·cold start 이어하기 ✅
+6. **9** — 플레이 난이도 (A옵션) — [Phase 9](#phase-9--플레이-난이도-a옵션-확정)
 
 ---
 
@@ -1064,6 +1070,135 @@ type LeaderboardEntry = {
 
 ---
 
+## Phase 9 — 플레이 난이도 (A옵션 확정)
+
+**상태**: ✅ **구현 완료**
+
+**목표**: **승진 모드(커리어) ON/OFF와 분리**된 **플레이 난이도** 3단(캐주얼 / 표준 / 프로). 승진 경로·숨김 순서·required wins는 **모든 난이도에서 동일**. 숙련 유저의 “한 세션 회장”은 **프로** 체감으로 늘리고, 기본 **캐주얼**은 현행 밸런스(출시 동작) 유지.
+
+### A옵션 — 진행·리더보드 (확정)
+
+| 항목 | 규칙 |
+|------|------|
+| **CareerState** | **1벌만** — `gameDifficulty` 필드 **없음** |
+| **난이도 변경** | 설정에서 **언제든** 가능; `rank` · `promotionWins` · `hiddenWins` · `phase` **불변** |
+| **다음 스테이지** | 변경 **즉시** 새 난이도 프로필 적용 (확인 Alert **없음**) |
+| **회장 리더보드** | 저장 시 `settings.gameDifficulty` **스냅샷** (`difficulty` 필드) |
+| **리더보드 정렬** | **점수 내림차순** (난이도로 1차 정렬하지 **않음**) |
+| **리더보드 UI** | 항목별 **난이도 배지**; 필터 **전체 / 프로만** |
+| **동점** | 기존 규칙 유지 (시간·id 등); **난이도로 동점 깨지 않음** |
+| **회장 리셋 후** | `finalizeChairmanClear` → intern 리셋; **설정의 gameDifficulty는 유지** |
+
+**하지 않음 (1차)**: 난이도별 별도 CareerState · “프로만 회장 인정” · 난이도별 AsyncStorage 키 분리.
+
+### 설정 (`AppSettings`)
+
+```ts
+type GameDifficulty = 'casual' | 'standard' | 'pro';
+
+type AppSettings = {
+  // ... 기존 필드 ...
+  careerModeEnabled: boolean;
+  gameDifficulty: GameDifficulty; // default: 'casual' — legacy 유저 체감 변경 없음
+};
+```
+
+- **`careerModeEnabled`**: 승진·숨김·회장·리더보드·`recordStageResult` ON/OFF (기존과 동일)
+- **`gameDifficulty`**: 커리어 ON/OFF **모두** 플레이 파라미터에 적용
+
+**설정 UI**: `SettingsScreen` — 섹션 **「플레이 난이도」** (`ChipSelector`, 언어/BGM과 동일 패턴). 승진 모드 토글 **아래** 또는 독립 섹션.
+
+**i18n (ko 요약)**:
+
+- 캐주얼: 느린 낙하·넉넉한 목표. 승진 여정 추천.
+- 표준: 조금 더 빠른 플레이. 승진 경로 동일.
+- 프로: 빠른 낙하·높은 목표. 회장 도전용.
+
+**`career.rulesSnippet` 보강** (한 문단):
+
+> 직급·스테이지 순서와 승진 조건은 난이도와 같습니다. 캐주얼·표준·프로는 **낙하 속도와 클리어 줄 수**만 다릅니다. 회장 기록에는 **클리어할 때 선택한 난이도**가 저장됩니다.
+
+**(선택)** 최초 `pro` 선택 시 1회 토스트: *진행은 유지됩니다. 다음 스테이지부터 프로 규칙이 적용됩니다.*
+
+### 난이도 프로필 (단일 진입점)
+
+**모듈**: `src/difficulty/difficultyProfile.ts` — `getDifficultyProfile(gameDifficulty)` → 엔진·캠페인·숨김·보너스·DAS가 **여기만** 참조.
+
+**공통 (난이도 무관 — 변경 금지)**:
+
+- `careerRules` 승진 `requiredWins`, `getPromotionStagePath`, `startCampaignLevel`
+- `HIDDEN_STAGE_PATH` **순서·개수(13)**, `(level, stage)` 좌표
+- game over 시 커리어 진행 유지
+
+| Knob | 캐주얼 (현행) | 표준 | 프로 |
+|------|----------------|------|------|
+| `gravityScale` | **2.0** (`speed.ts` 현재값) | **1.5** | **1.0** (NES에 가깝게) |
+| 승진 라인 목표 | `STAGE_LINE_TARGETS` | 각 **+1** | 각 **+2** (S5는 **+3** → 15) |
+| 승진 gravity tier | `getGravityTier(stage)` | stage **≥3** → tier **+1** (cap) | stage **≥2** → +1, stage **≥4** → +2 (cap) |
+| 숨김 스테이지 | `HIDDEN_STAGE_PATH` 그대로 | `lineTarget +2`, `gravityTier +1` (cap) | `lineTarget +4` (ceo H2 **+5** → 23), tier **+1~2** (cap) |
+| 보너스 라인 (`BONUS_LINE_TARGET`) | 10 | 12 | 15 |
+| DAS / ARR | 220 / 95 ms | 200 / 90 | 170 / 80 |
+
+- tier cap: NES gravity table 상한 내 (`speed.ts` `NES_GRAVITY_FRAMES.length - 1`)
+- 고스트: **항상 ON** (1차); 프로 전용 고스트 OFF는 **2차 옵션**
+
+### 리더보드 확장 (Phase 8c 위에 additive)
+
+```ts
+type LeaderboardEntry = {
+  id: string;
+  initials: string;
+  avatarId: AvatarId;
+  rank: 'chairman';
+  score: number;
+  clearedAt: string;
+  difficulty?: GameDifficulty; // Phase 9 — 없으면 legacy → UI에서 'casual' 취급
+};
+```
+
+- `ChairmanSaveModal` / leaderboard insert: **`settings.gameDifficulty` 스냅샷**
+- `LeaderboardScreen`: 배지 + **전체 / 프로만** 필터 칩
+
+### 엣지 케이스
+
+| 상황 | 동작 |
+|------|------|
+| 숨김 5/13에서 캐주얼→프로 | **5/13 유지**; 다음 숨김만 프로 line/tier |
+| 보너스 라운드 중 난이도 변경 | **보너스 진입 시점** 프로필 고정 (권장) |
+| 회장 직전 pro→캐주얼 | 이니셜 저장 직전 settings 읽기 → **캐주얼**로 기록 |
+| 커리어 OFF | 동일 `gameDifficulty`로 캠페인·하이스코어 |
+| cold start **이어하기** | 세션 스냅샷에 **`gameDifficultyAtRoundStart`** 또는 저장 시점 settings 포함 (보너스·스테이지 목표 일관성) |
+
+### 작업 체크리스트
+
+- [x] `settings/types.ts` — `GameDifficulty`, `gameDifficulty` default `casual`
+- [x] `settings/storage.ts` — load/save + legacy default `casual`
+- [x] `SettingsContext` — `setGameDifficulty`
+- [x] `difficultyProfile.ts` — profile + `resolveStageLineTarget` / `resolveGravityTier` / hidden effective def
+- [x] `speed.ts` — `gravityScale`, DAS/ARR을 profile 또는 인자로 주입
+- [x] `campaign.ts` / `hiddenStages.ts` — 호출부에서 profile 적용 (또는 thin wrapper)
+- [x] `bonusGame.ts` — `BONUS_LINE_TARGET` profile별
+- [x] `GameScreen` / `useGameLoop` / `useKeyboardControls` — settings difficulty 전달; 보너스 진입 시 스냅샷
+- [x] `PlayerStatusBar` / `StartScreen` — 난이도 배지 (커리어 ON 시)
+- [x] `SettingsScreen` — 플레이 난이도 `ChipSelector`
+- [x] `leaderboard/types.ts` + storage + `LeaderboardScreen` — `difficulty`, 필터
+- [x] `gameStorage.ts` (8e) — resume 시 difficulty 필드 (필요 시)
+- [x] i18n — `settings.difficulty*`, `leaderboard.difficulty*`, `career.rulesSnippet` 보강
+- [x] Jest — `difficultyProfile.test.ts`, `leaderboard.test.ts` 확장, `gameStorage` (resume)
+
+### 완료 기준 (AC)
+
+1. 승진 ON 상태에서 난이도만 바꿔도 **CareerState 직급·wins 불변**
+2. default `casual` 로드 시 **현행과 동일** 중력·라인 목표
+3. 회장 저장 항목에 **`difficulty`**; 리더보드에 배지 표시
+4. **프로만** 필터 동작
+5. 승진 OFF에서도 선택 난이도가 스테이지·중력에 반영
+6. `npm test` — 신규·확장 테스트 pass
+
+**관련 파일**: `difficultyProfile.ts`, `settings/*`, `speed.ts`, `campaign.ts`, `hiddenStages.ts`, `bonusGame.ts`, `GameScreen.tsx`, `gameStorage.ts`, `leaderboard/*`, `ChairmanSaveModal.tsx`, `LeaderboardScreen.tsx`, `PlayerStatusBar.tsx`, `SettingsScreen.tsx`, `locales/en.ts`, `locales/ko.ts`
+
+---
+
 ## 구현 시 주의사항
 
 1. **셀 크기**: `computeCellSize(boardWidth, boardHeight)` — 8×16; `onLayout`은 `playSection`에만 (PlayerStatusBar 높이 제외). `boardHeight = playSectionHeight - GESTURE_TUTORIAL_HEIGHT(68) - TUTORIAL_GAP(12) - BOTTOM_LIFT(24) - BOARD_FRAME_SIZE(14)` (`GameScreen` `BOARD_BORDER`)
@@ -1072,8 +1207,8 @@ type LeaderboardEntry = {
 4. **성능**: 보드는 `Cell` 128개 (8×16); `key={`${x},${y}`}`; `React.memo(Cell)` custom compare
 5. **회전**: Guideline SRS (`srs.ts`); 8-wide 보드, spawn x=2
 6. **타입**: `type BoardCell = null | TetrominoType`; locked board는 color resolve at render
-7. **중력**: NES frame table × `GRAVITY_SCALE` 2 → ms (`speed.ts`); 캠페인 `getGravityTier(stage)`로 스테이지 4+ 가속
-8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action; **↓ drag hold** = `SOFT_DROP` (ARR 95ms via `useGameLoop`)
+7. **중력**: NES frame table × `gravityScale` → ms (`speed.ts`); 캠페인 `getGravityTier(stage)` + **Phase 9** `getDifficultyProfile(gameDifficulty)` tier 보정. **현재 구현**: `GRAVITY_SCALE` 2 고정 = **캐주얼**
+8. **DAS/ARR**: quick swipe = 1칸; drag hold = `DAS` engine action; **↓ drag hold** = `SOFT_DROP` (ARR via `useGameLoop`). **Phase 9**: profile별 DAS/ARR (캐주얼 220/95)
 9. **네이티브 리소스**: `app.json` 변경 → `npx expo prebuild --clean` → `expo run:android`
 10. **회장 이니셜**: `ChairmanSaveModal` (RN Modal) — overlay `absoluteFill`만으로는 Android Modal 내부 0px 렌더 가능; `presentation="modal"` + `flex:1` 사용
 11. **DEV 미리보기**: `__DEV__` 게이트 — production APK/AAB에 DEV UI 없음
