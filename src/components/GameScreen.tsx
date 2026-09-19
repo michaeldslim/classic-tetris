@@ -895,7 +895,6 @@ export function GameScreen({
           <View style={styles.playBlock}>
             <PlayerStatusBar
               avatarId={settings.playerAvatarId}
-              showAvatar={settings.playerAvatarVisible}
               careerMode={showCareerBar}
               difficultyLabel={showCareerBar ? difficultyBadgeLabel : undefined}
               career={careerBar ?? undefined}

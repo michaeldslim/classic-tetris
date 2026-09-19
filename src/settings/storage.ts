@@ -17,7 +17,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bgmVolume: 3,
   sfxVolume: 5,
   playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
-  playerAvatarVisible: true,
   careerModeEnabled: true,
   gameDifficulty: DEFAULT_GAME_DIFFICULTY,
 };
@@ -40,10 +39,6 @@ export async function loadSettings(): Promise<AppSettings> {
       bgmTrack: isBgmTrack(parsed.bgmTrack)
         ? parsed.bgmTrack
         : DEFAULT_SETTINGS.bgmTrack,
-      playerAvatarVisible:
-        typeof parsed.playerAvatarVisible === 'boolean'
-          ? parsed.playerAvatarVisible
-          : DEFAULT_SETTINGS.playerAvatarVisible,
       careerModeEnabled:
         typeof parsed.careerModeEnabled === 'boolean'
           ? parsed.careerModeEnabled

@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCareerProgressCopy } from '../career/careerLabels';
@@ -36,13 +36,13 @@ function SettingsScreenComponent({
     setBgmVolume,
     setSfxVolume,
     setPlayerAvatarId,
-    setPlayerAvatarVisible,
     setCareerModeEnabled,
     setGameDifficulty,
     translate,
   } = useSettings();
   const { careerState, loaded: careerLoaded, resetCareerProgress } = useCareer();
   const { scoreRecord, loaded: scoreLoaded } = useScore();
+  const [avatarGridExpanded, setAvatarGridExpanded] = useState(false);
 
   const careerProgressLabel =
     settings.careerModeEnabled && careerLoaded
@@ -139,8 +139,8 @@ function SettingsScreenComponent({
                   label: translate('settings.playerAvatarHide'),
                 },
               ]}
-              value={settings.playerAvatarVisible ? 'show' : 'hide'}
-              onChange={(mode) => setPlayerAvatarVisible(mode === 'show')}
+              value={avatarGridExpanded ? 'show' : 'hide'}
+              onChange={(mode) => setAvatarGridExpanded(mode === 'show')}
               accessibilityLabel={translate('settings.playerAvatarVisibility')}
             />
             <AvatarPicker
@@ -148,7 +148,7 @@ function SettingsScreenComponent({
               description={translate('settings.playerAvatarDescription')}
               value={settings.playerAvatarId}
               onChange={setPlayerAvatarId}
-              gridExpanded={settings.playerAvatarVisible}
+              gridExpanded={avatarGridExpanded}
               collapsedHint={translate('settings.playerAvatarCollapsedHint')}
             />
           </View>

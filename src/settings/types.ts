@@ -22,8 +22,6 @@ export type AppSettings = {
   /** 1–10, mapped to player volume 0.1–1.0 */
   sfxVolume: number;
   playerAvatarId: AvatarId;
-  /** When false, avatar grid in settings is collapsed and in-game avatar UI is hidden. */
-  playerAvatarVisible: boolean;
   careerModeEnabled: boolean;
   /** Play feel — independent of careerModeEnabled (Phase 9). */
   gameDifficulty: GameDifficulty;

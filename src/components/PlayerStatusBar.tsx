@@ -13,7 +13,6 @@ export type CareerBarInfo = {
 
 type PlayerStatusBarProps = {
   avatarId: AvatarId;
-  showAvatar?: boolean;
   careerMode: boolean;
   difficultyLabel?: string;
   career?: CareerBarInfo;
@@ -27,7 +26,6 @@ type PlayerStatusBarProps = {
 
 function PlayerStatusBarComponent({
   avatarId,
-  showAvatar = true,
   careerMode,
   difficultyLabel,
   career,
@@ -44,9 +42,7 @@ function PlayerStatusBarComponent({
 
   return (
     <View style={styles.container}>
-      {showAvatar ? (
-        <PlayerAvatar avatarId={avatarId} size="md" />
-      ) : null}
+      <PlayerAvatar avatarId={avatarId} size="md" />
 
       {careerMode && career ? (
         <View style={styles.info}>

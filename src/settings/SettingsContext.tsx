@@ -21,7 +21,6 @@ type SettingsContextValue = {
   setBgmVolume: (level: number) => void;
   setSfxVolume: (level: number) => void;
   setPlayerAvatarId: (avatarId: AvatarId) => void;
-  setPlayerAvatarVisible: (visible: boolean) => void;
   setCareerModeEnabled: (enabled: boolean) => void;
   setGameDifficulty: (difficulty: GameDifficulty) => void;
   translate: typeof t;
@@ -96,14 +95,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setPlayerAvatarVisible = useCallback((playerAvatarVisible: boolean) => {
-    setSettings((current) => {
-      const next = { ...current, playerAvatarVisible };
-      void saveSettings(next);
-      return next;
-    });
-  }, []);
-
   const setCareerModeEnabled = useCallback((careerModeEnabled: boolean) => {
     setSettings((current) => {
       const next = { ...current, careerModeEnabled };
@@ -129,7 +120,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setBgmVolume,
       setSfxVolume,
       setPlayerAvatarId,
-      setPlayerAvatarVisible,
       setCareerModeEnabled,
       setGameDifficulty,
       translate: t,
@@ -142,7 +132,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setBgmVolume,
       setSfxVolume,
       setPlayerAvatarId,
-      setPlayerAvatarVisible,
       setCareerModeEnabled,
       setGameDifficulty,
     ],

@@ -70,9 +70,7 @@ function StartScreenComponent({
         </Pressable>
 
         <View style={styles.hero}>
-          {settings.playerAvatarVisible ? (
-            <PlayerAvatar avatarId={settings.playerAvatarId} size="xl" />
-          ) : null}
+          <PlayerAvatar avatarId={settings.playerAvatarId} size="xl" />
           <Text style={styles.title}>{translate('app.title')}</Text>
           {careerBadge ? <Text style={styles.careerBadge}>{careerBadge}</Text> : null}
           {highScoreBadge ? <Text style={styles.highScoreBadge}>{highScoreBadge}</Text> : null}
