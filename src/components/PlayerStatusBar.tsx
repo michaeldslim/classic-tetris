@@ -13,7 +13,9 @@ export type CareerBarInfo = {
 
 type PlayerStatusBarProps = {
   avatarId: AvatarId;
+  showAvatar?: boolean;
   careerMode: boolean;
+  difficultyLabel?: string;
   career?: CareerBarInfo;
   score?: number;
   highScore?: number;
@@ -25,7 +27,9 @@ type PlayerStatusBarProps = {
 
 function PlayerStatusBarComponent({
   avatarId,
+  showAvatar = true,
   careerMode,
+  difficultyLabel,
   career,
   score = 0,
   highScore = 0,
@@ -40,12 +44,17 @@ function PlayerStatusBarComponent({
 
   return (
     <View style={styles.container}>
-      <PlayerAvatar avatarId={avatarId} size="md" />
+      {showAvatar ? (
+        <PlayerAvatar avatarId={avatarId} size="md" />
+      ) : null}
 
       {careerMode && career ? (
         <View style={styles.info}>
           <View style={styles.rankRow}>
             <Text style={styles.rankLabel}>{career.rankLabel}</Text>
+            {difficultyLabel ? (
+              <Text style={styles.difficultyBadge}>{difficultyLabel}</Text>
+            ) : null}
           </View>
 
           <View style={styles.progressTrack}>
@@ -113,6 +122,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
+    flex: 1,
+  },
+  difficultyBadge: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
+    overflow: 'hidden',
   },
   progressTrack: {
     height: 6,

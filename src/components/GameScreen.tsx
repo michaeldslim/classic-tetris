@@ -15,12 +15,13 @@ import type { CareerStageTarget } from '../career/types';
 import { useCareer } from '../career/CareerProvider';
 import type { PromotionResult } from '../career/types';
 import { getGhostPiece } from '../game/engine';
-import { getStageLineTarget, getGravityTier } from '../game/campaign';
 import {
-  BONUS_LINE_TARGET,
-  BONUS_SCORE_MULTIPLIER,
-  shouldTriggerBonus,
-} from '../game/bonusGame';
+  getDifficultyProfile,
+  getBonusLineTarget,
+  resolveCareerStageModifiers,
+  resolvePromotionStageModifiers,
+} from '../difficulty/difficultyProfile';
+import { BONUS_SCORE_MULTIPLIER, shouldTriggerBonus } from '../game/bonusGame';
 import {
   clearGameSession,
   createGameSessionSnapshot,
@@ -35,6 +36,7 @@ import { useGameFeedback } from '../hooks/useGameFeedback';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { useSettings } from '../settings/SettingsContext';
+import type { GameDifficulty } from '../settings/types';
 import { achievementKey } from '../score/achievements';
 import { useLeaderboard } from '../leaderboard/LeaderboardProvider';
 import { useScore } from '../score/ScoreProvider';
@@ -68,14 +70,16 @@ type BonusPhase = 'none' | 'intro' | 'result';
 function dispatchCareerStage(
   dispatch: (action: EngineAction) => void,
   target: CareerStageTarget,
+  difficulty: GameDifficulty,
   actionType: 'NEXT_STAGE' | 'RESTART',
 ) {
+  const mods = resolveCareerStageModifiers(difficulty, target);
   dispatch({
     type: actionType,
     level: target.level,
     stage: target.stage,
-    stageLineTarget: target.lineTarget,
-    gravityTier: target.gravityTier,
+    stageLineTarget: mods.lineTarget,
+    gravityTier: mods.gravityTier,
   });
 }
 
@@ -163,10 +167,18 @@ export function GameScreen({
 
   const lineTarget =
     state.mode === 'bonus'
-      ? BONUS_LINE_TARGET
-      : getStageLineTarget(state.stage, state.stageLineTargetOverride);
+      ? (state.stageLineTargetOverride ??
+        getBonusLineTarget(state.gameDifficulty))
+      : (state.stageLineTargetOverride ??
+        resolvePromotionStageModifiers(settings.gameDifficulty, state.stage)
+          .lineTarget);
   const gravityTier =
-    state.gravityTierOverride ?? getGravityTier(state.stage);
+    state.gravityTierOverride ??
+    resolvePromotionStageModifiers(settings.gameDifficulty, state.stage)
+      .gravityTier;
+  const bonusLineTargetDisplay =
+    state.stageLineTargetOverride ??
+    getBonusLineTarget(state.gameDifficulty);
   const bonusTimerSec = state.bonus
     ? Math.ceil(state.bonus.timeRemainingMs / 1000)
     : undefined;
@@ -283,7 +295,12 @@ export function GameScreen({
       const nextPosition = getCareerStageTarget(careerState);
 
       if (nextPosition) {
-        dispatchCareerStage(dispatch, nextPosition, 'NEXT_STAGE');
+        dispatchCareerStage(
+          dispatch,
+          nextPosition,
+          settings.gameDifficulty,
+          'NEXT_STAGE',
+        );
         return;
       }
     }
@@ -294,6 +311,7 @@ export function GameScreen({
     careerState,
     dispatch,
     settings.careerModeEnabled,
+    settings.gameDifficulty,
   ]);
 
   const resetRunTracking = useCallback(() => {
@@ -323,7 +341,12 @@ export function GameScreen({
       const startPosition = getCareerStageTarget(careerState);
 
       if (startPosition) {
-        dispatchCareerStage(dispatch, startPosition, 'RESTART');
+        dispatchCareerStage(
+          dispatch,
+          startPosition,
+          settings.gameDifficulty,
+          'RESTART',
+        );
         return;
       }
     }
@@ -336,6 +359,7 @@ export function GameScreen({
     dispatch,
     resetRunTracking,
     settings.careerModeEnabled,
+    settings.gameDifficulty,
   ]);
 
   const handleGameOverRestart = useCallback(() => {
@@ -541,6 +565,7 @@ export function GameScreen({
         initials,
         score: chairmanSaveScore,
         avatarId: settings.playerAvatarId,
+        difficulty: settings.gameDifficulty,
       }).then((saved) => {
         if (saved) {
           void finalizeChairmanClear();
@@ -556,6 +581,7 @@ export function GameScreen({
       finalizeChairmanClear,
       saveChairmanEntry,
       settings.playerAvatarId,
+      settings.gameDifficulty,
       dispatch,
     ],
   );
@@ -691,19 +717,30 @@ export function GameScreen({
       return;
     }
 
+    const mods = resolveCareerStageModifiers(
+      settings.gameDifficulty,
+      startPosition,
+    );
+
     if (
       state.level !== startPosition.level ||
       state.stage !== startPosition.stage ||
-      state.stageLineTargetOverride !== startPosition.lineTarget ||
-      state.gravityTierOverride !== startPosition.gravityTier
+      state.stageLineTargetOverride !== mods.lineTarget ||
+      state.gravityTierOverride !== mods.gravityTier
     ) {
-      dispatchCareerStage(dispatch, startPosition, 'RESTART');
+      dispatchCareerStage(
+        dispatch,
+        startPosition,
+        settings.gameDifficulty,
+        'RESTART',
+      );
     }
   }, [
     careerLoaded,
     careerState,
     dispatch,
     settings.careerModeEnabled,
+    settings.gameDifficulty,
     showPromotionOverlay,
     showChairmanSaveOverlay,
     state.gravityTierOverride,
@@ -711,6 +748,72 @@ export function GameScreen({
     state.stage,
     state.stageCleared,
     state.stageLineTargetOverride,
+  ]);
+
+  useEffect(() => {
+    const profile = getDifficultyProfile(settings.gameDifficulty);
+    if (
+      state.gameDifficulty === settings.gameDifficulty &&
+      state.gravityScale === profile.gravityScale &&
+      state.dasDelayMs === profile.dasDelayMs &&
+      state.arrIntervalMs === profile.arrIntervalMs
+    ) {
+      return;
+    }
+
+    let stageLineTargetOverride: number | undefined;
+    let gravityTierOverride: number | undefined;
+
+    if (state.mode === 'campaign' && !state.stageCleared) {
+      if (settings.careerModeEnabled && careerLoaded) {
+        const target = getCareerStageTarget(careerState);
+        if (
+          target &&
+          target.level === state.level &&
+          target.stage === state.stage
+        ) {
+          const mods = resolveCareerStageModifiers(
+            settings.gameDifficulty,
+            target,
+          );
+          stageLineTargetOverride = mods.lineTarget;
+          gravityTierOverride = mods.gravityTier;
+        }
+      } else {
+        const mods = resolvePromotionStageModifiers(
+          settings.gameDifficulty,
+          state.stage,
+        );
+        stageLineTargetOverride = mods.lineTarget;
+        gravityTierOverride = mods.gravityTier;
+      }
+    }
+
+    dispatch({
+      type: 'UPDATE_PLAY_PROFILE',
+      gameDifficulty: settings.gameDifficulty,
+      gravityScale: profile.gravityScale,
+      dasDelayMs: profile.dasDelayMs,
+      arrIntervalMs: profile.arrIntervalMs,
+      ...(stageLineTargetOverride !== undefined
+        ? { stageLineTargetOverride }
+        : {}),
+      ...(gravityTierOverride !== undefined ? { gravityTierOverride } : {}),
+    });
+  }, [
+    careerLoaded,
+    careerState,
+    dispatch,
+    settings.careerModeEnabled,
+    settings.gameDifficulty,
+    state.dasDelayMs,
+    state.gameDifficulty,
+    state.gravityScale,
+    state.arrIntervalMs,
+    state.level,
+    state.mode,
+    state.stage,
+    state.stageCleared,
   ]);
 
   const handleOpenSettings = useCallback(() => {
@@ -741,6 +844,13 @@ export function GameScreen({
 
   const showCareerBar =
     settings.careerModeEnabled && careerLoaded && careerBar !== null;
+
+  const difficultyBadgeLabel =
+    settings.gameDifficulty === 'casual'
+      ? translate('settings.difficultyCasual')
+      : settings.gameDifficulty === 'standard'
+        ? translate('settings.difficultyStandard')
+        : translate('settings.difficultyPro');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -785,7 +895,9 @@ export function GameScreen({
           <View style={styles.playBlock}>
             <PlayerStatusBar
               avatarId={settings.playerAvatarId}
+              showAvatar={settings.playerAvatarVisible}
               careerMode={showCareerBar}
+              difficultyLabel={showCareerBar ? difficultyBadgeLabel : undefined}
               career={careerBar ?? undefined}
               score={state.score}
               highScore={showCareerBar ? undefined : scoreRecord.highScore}
@@ -890,6 +1002,7 @@ export function GameScreen({
                     <BonusGameOverlay
                       visible={bonusPhase === 'intro' || bonusPhase === 'result'}
                       phase={bonusPhase === 'result' ? 'result' : 'intro'}
+                      lineTarget={bonusLineTargetDisplay}
                       earnedScore={state.bonus?.earnedScore}
                       success={state.bonus?.success}
                       onPrimary={

@@ -8,6 +8,9 @@ type AvatarPickerProps = {
   description?: string;
   value: AvatarId;
   onChange: (value: AvatarId) => void;
+  /** When false, only the selected avatar is shown (grid collapsed). */
+  gridExpanded: boolean;
+  collapsedHint?: string;
 };
 
 export function AvatarPicker({
@@ -15,27 +18,39 @@ export function AvatarPicker({
   description,
   value,
   onChange,
+  gridExpanded,
+  collapsedHint,
 }: AvatarPickerProps) {
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
-      <View style={styles.grid}>
-        {AVATAR_IDS.map((avatarId) => {
-          const selected = avatarId === value;
-          return (
-            <Pressable
-              key={avatarId}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => onChange(avatarId)}
-              style={[styles.option, selected && styles.optionSelected]}
-            >
-              <PlayerAvatar avatarId={avatarId} size="lg" selected={selected} />
-            </Pressable>
-          );
-        })}
-      </View>
+
+      {!gridExpanded ? (
+        <View style={styles.collapsedRow}>
+          <PlayerAvatar avatarId={value} size="lg" selected />
+          {collapsedHint ? (
+            <Text style={styles.collapsedHint}>{collapsedHint}</Text>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.grid}>
+          {AVATAR_IDS.map((avatarId) => {
+            const selected = avatarId === value;
+            return (
+              <Pressable
+                key={avatarId}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => onChange(avatarId)}
+                style={[styles.option, selected && styles.optionSelected]}
+              >
+                <PlayerAvatar avatarId={avatarId} size="lg" selected={selected} />
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -54,6 +69,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     marginTop: -4,
+  },
+  collapsedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  collapsedHint: {
+    flex: 1,
+    color: theme.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
   },
   grid: {
     flexDirection: 'row',

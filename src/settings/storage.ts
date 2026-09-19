@@ -1,8 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resolveAvatarId } from '../constants/avatars';
 import { detectDeviceLanguage } from '../i18n';
+import { isGameDifficulty } from '../difficulty/difficultyProfile';
 import type { AppSettings } from './types';
-import { DEFAULT_PLAYER_AVATAR_ID, isBgmTrack } from './types';
+import {
+  DEFAULT_GAME_DIFFICULTY,
+  DEFAULT_PLAYER_AVATAR_ID,
+  isBgmTrack,
+} from './types';
 
 const SETTINGS_KEY = '@classic-tetris/settings';
 
@@ -12,7 +17,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bgmVolume: 3,
   sfxVolume: 5,
   playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
+  playerAvatarVisible: true,
   careerModeEnabled: true,
+  gameDifficulty: DEFAULT_GAME_DIFFICULTY,
 };
 
 export async function loadSettings(): Promise<AppSettings> {
@@ -33,10 +40,17 @@ export async function loadSettings(): Promise<AppSettings> {
       bgmTrack: isBgmTrack(parsed.bgmTrack)
         ? parsed.bgmTrack
         : DEFAULT_SETTINGS.bgmTrack,
+      playerAvatarVisible:
+        typeof parsed.playerAvatarVisible === 'boolean'
+          ? parsed.playerAvatarVisible
+          : DEFAULT_SETTINGS.playerAvatarVisible,
       careerModeEnabled:
         typeof parsed.careerModeEnabled === 'boolean'
           ? parsed.careerModeEnabled
           : DEFAULT_SETTINGS.careerModeEnabled,
+      gameDifficulty: isGameDifficulty(parsed.gameDifficulty)
+        ? parsed.gameDifficulty
+        : DEFAULT_SETTINGS.gameDifficulty,
     };
   } catch {
     return DEFAULT_SETTINGS;

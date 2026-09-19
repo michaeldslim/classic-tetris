@@ -23,8 +23,22 @@ export const ko: TranslationSchema = {
     avatars: '아바타',
     playerAvatar: '플레이어 아바타',
     playerAvatarDescription: '게임 화면과 승진 연출에 표시됩니다.',
+    playerAvatarVisibility: '아바타 표시',
+    playerAvatarShow: '보이기',
+    playerAvatarHide: '숨기기',
+    playerAvatarCollapsedHint:
+      '아바타 목록이 접혀 있습니다. 보이기를 선택하면 다른 아바타를 고를 수 있습니다.',
     career: '승진제',
     score: '점수',
+    difficultyTitle: '플레이 난이도',
+    difficultyCasual: '쉬움',
+    difficultyStandard: '보통',
+    difficultyPro: '프로',
+    difficultyCasualDesc:
+      '느린 낙하와 넉넉한 목표. 승진 여정에 추천합니다.',
+    difficultyStandardDesc:
+      '조금 더 빠른 플레이. 승진 경로와 조건은 동일합니다.',
+    difficultyProDesc: '빠른 낙하와 높은 목표. 회장 도전용.',
   },
   language: {
     ko: '한국어',
@@ -129,7 +143,7 @@ export const ko: TranslationSchema = {
     modeLabel: '승진 모드',
     modeDesc: '스테이지 클리어로 직급을 올립니다',
     rulesSnippet:
-      '인턴에서 시작해 정해진 레벨·스테이지를 순서대로 클리어하면 직급이 올라갑니다. 사장 승진 후에는 각 직급의 숨겨진 스테이지를 순서대로 공략해 회장에 도전합니다. 게임 오버해도 진행은 유지됩니다.',
+      '인턴에서 시작해 정해진 레벨·스테이지를 순서대로 클리어하면 직급이 올라갑니다. 사장 승진 후에는 각 직급의 숨겨진 스테이지를 순서대로 공략해 회장에 도전합니다. 게임 오버해도 진행은 유지됩니다. 직급·스테이지 순서와 승진 조건은 난이도와 같습니다. 쉬움·보통·프로는 낙하 속도와 클리어 줄 수만 다릅니다. 회장 기록에는 클리어할 때 선택한 난이도가 저장됩니다.',
     campaignLevel: '레벨 {{level}}',
     screen: {
       title: '승진 현황',
@@ -197,6 +211,11 @@ export const ko: TranslationSchema = {
   },
   leaderboard: {
     title: '회장 리더보드',
+    filterAll: '전체',
+    filterPro: '프로만',
+    difficultyCasual: '쉬움',
+    difficultyStandard: '보통',
+    difficultyPro: 'PRO',
     empty: {
       title: '아직 회장 클리어 기록이 없습니다',
       body: '숨겨진 스테이지를 모두 클리어하고 회장이 되면 이니셜을 남길 수 있습니다.',

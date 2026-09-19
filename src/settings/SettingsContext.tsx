@@ -10,7 +10,7 @@ import {
 import { setI18nLanguage, t } from '../i18n';
 import type { AvatarId } from '../constants/avatars';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './storage';
-import type { AppSettings, BgmTrack } from './types';
+import type { AppSettings, BgmTrack, GameDifficulty } from './types';
 import type { AppLanguage } from '../i18n';
 
 type SettingsContextValue = {
@@ -21,7 +21,9 @@ type SettingsContextValue = {
   setBgmVolume: (level: number) => void;
   setSfxVolume: (level: number) => void;
   setPlayerAvatarId: (avatarId: AvatarId) => void;
+  setPlayerAvatarVisible: (visible: boolean) => void;
   setCareerModeEnabled: (enabled: boolean) => void;
+  setGameDifficulty: (difficulty: GameDifficulty) => void;
   translate: typeof t;
 };
 
@@ -94,9 +96,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setPlayerAvatarVisible = useCallback((playerAvatarVisible: boolean) => {
+    setSettings((current) => {
+      const next = { ...current, playerAvatarVisible };
+      void saveSettings(next);
+      return next;
+    });
+  }, []);
+
   const setCareerModeEnabled = useCallback((careerModeEnabled: boolean) => {
     setSettings((current) => {
       const next = { ...current, careerModeEnabled };
+      void saveSettings(next);
+      return next;
+    });
+  }, []);
+
+  const setGameDifficulty = useCallback((gameDifficulty: GameDifficulty) => {
+    setSettings((current) => {
+      const next = { ...current, gameDifficulty };
       void saveSettings(next);
       return next;
     });
@@ -111,7 +129,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setBgmVolume,
       setSfxVolume,
       setPlayerAvatarId,
+      setPlayerAvatarVisible,
       setCareerModeEnabled,
+      setGameDifficulty,
       translate: t,
     }),
     [
@@ -122,7 +142,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setBgmVolume,
       setSfxVolume,
       setPlayerAvatarId,
+      setPlayerAvatarVisible,
       setCareerModeEnabled,
+      setGameDifficulty,
     ],
   );
 

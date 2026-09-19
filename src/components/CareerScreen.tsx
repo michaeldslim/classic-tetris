@@ -58,9 +58,11 @@ function CareerDisabledState({ onOpenSettings }: { onOpenSettings: () => void })
 function CareerSummary({
   state,
   playerAvatarId,
+  showAvatar,
 }: {
   state: CareerState;
   playerAvatarId: AvatarId;
+  showAvatar: boolean;
 }) {
   const { translate } = useSettings();
   const progress = getCareerProgressCopy(translate, state);
@@ -71,7 +73,9 @@ function CareerSummary({
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryHeader}>
-        <PlayerAvatar avatarId={playerAvatarId} size="lg" />
+        {showAvatar ? (
+          <PlayerAvatar avatarId={playerAvatarId} size="lg" />
+        ) : null}
         <View style={styles.summaryText}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>
@@ -240,6 +244,7 @@ function CareerScreenComponent({ onBack, onOpenSettings }: CareerScreenProps) {
               <CareerSummary
                 state={careerState}
                 playerAvatarId={settings.playerAvatarId}
+                showAvatar={settings.playerAvatarVisible}
               />
               <Text style={styles.rulesText}>{translate('career.rulesSnippet')}</Text>
               <View style={styles.ladderSection}>

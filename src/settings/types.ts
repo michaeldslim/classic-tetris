@@ -10,6 +10,10 @@ export function isBgmTrack(value: unknown): value is BgmTrack {
   return typeof value === 'string' && BGM_TRACKS.includes(value as BgmTrack);
 }
 
+export type GameDifficulty = 'casual' | 'standard' | 'pro';
+
+export const DEFAULT_GAME_DIFFICULTY: GameDifficulty = 'casual';
+
 export type AppSettings = {
   language: AppLanguage;
   bgmTrack: BgmTrack;
@@ -18,7 +22,11 @@ export type AppSettings = {
   /** 1–10, mapped to player volume 0.1–1.0 */
   sfxVolume: number;
   playerAvatarId: AvatarId;
+  /** When false, avatar grid in settings is collapsed and in-game avatar UI is hidden. */
+  playerAvatarVisible: boolean;
   careerModeEnabled: boolean;
+  /** Play feel — independent of careerModeEnabled (Phase 9). */
+  gameDifficulty: GameDifficulty;
 };
 
 export { DEFAULT_PLAYER_AVATAR_ID };

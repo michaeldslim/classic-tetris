@@ -21,8 +21,19 @@ export type TranslationSchema = {
     avatars: string;
     playerAvatar: string;
     playerAvatarDescription: string;
+    playerAvatarVisibility: string;
+    playerAvatarShow: string;
+    playerAvatarHide: string;
+    playerAvatarCollapsedHint: string;
     career: string;
     score: string;
+    difficultyTitle: string;
+    difficultyCasual: string;
+    difficultyStandard: string;
+    difficultyPro: string;
+    difficultyCasualDesc: string;
+    difficultyStandardDesc: string;
+    difficultyProDesc: string;
   };
   language: {
     ko: string;
@@ -179,6 +190,11 @@ export type TranslationSchema = {
   };
   leaderboard: {
     title: string;
+    filterAll: string;
+    filterPro: string;
+    difficultyCasual: string;
+    difficultyStandard: string;
+    difficultyPro: string;
     empty: {
       title: string;
       body: string;
@@ -220,8 +236,23 @@ export const en: TranslationSchema = {
     avatars: 'Avatars',
     playerAvatar: 'Player avatar',
     playerAvatarDescription: 'Shown during play and promotion celebrations.',
+    playerAvatarVisibility: 'Avatar display',
+    playerAvatarShow: 'Show',
+    playerAvatarHide: 'Hide',
+    playerAvatarCollapsedHint:
+      'Avatar list is collapsed. Choose Show to pick a different avatar.',
     career: 'Career',
     score: 'Score',
+    difficultyTitle: 'Play difficulty',
+    difficultyCasual: 'Casual',
+    difficultyStandard: 'Standard',
+    difficultyPro: 'Pro',
+    difficultyCasualDesc:
+      'Slower gravity and generous line targets. Recommended for the promotion path.',
+    difficultyStandardDesc:
+      'A bit faster. Promotion route and requirements stay the same.',
+    difficultyProDesc:
+      'Fast gravity and higher targets. For chairman challenges.',
   },
   language: {
     ko: '한국어',
@@ -326,7 +357,7 @@ export const en: TranslationSchema = {
     modeLabel: 'Career mode',
     modeDesc: 'Climb ranks by clearing stages',
     rulesSnippet:
-      'Start as an Intern and clear stages in order to climb ranks. After reaching CEO, unlock hidden stages rank by rank to become Chairman. Game overs keep your progress.',
+      'Start as an Intern and clear stages in order to climb ranks. After reaching CEO, unlock hidden stages rank by rank to become Chairman. Game overs keep your progress. Rank path and promotion requirements are the same on every difficulty—Casual, Standard, and Pro only change gravity and line targets. Your difficulty at chairman clear is saved on the leaderboard.',
     campaignLevel: 'Level {{level}}',
     screen: {
       title: 'Career progress',
@@ -394,6 +425,11 @@ export const en: TranslationSchema = {
   },
   leaderboard: {
     title: 'Chairman leaderboard',
+    filterAll: 'All',
+    filterPro: 'Pro only',
+    difficultyCasual: 'CASUAL',
+    difficultyStandard: 'STD',
+    difficultyPro: 'PRO',
     empty: {
       title: 'No chairman clears yet',
       body: 'Clear all hidden stages and become Chairman to record your initials here.',

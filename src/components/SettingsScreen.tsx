@@ -6,7 +6,8 @@ import { useCareer } from '../career/CareerProvider';
 import { SCORE_ACHIEVEMENTS, achievementKey } from '../score/achievements';
 import { useScore } from '../score/ScoreProvider';
 import { useSettings } from '../settings/SettingsContext';
-import { BGM_TRACKS } from '../settings/types';
+import { GAME_DIFFICULTIES } from '../difficulty/difficultyProfile';
+import { BGM_TRACKS, type GameDifficulty } from '../settings/types';
 import type { AppLanguage } from '../i18n';
 import { theme } from '../theme/colors';
 import { AvatarPicker } from './AvatarPicker';
@@ -35,7 +36,9 @@ function SettingsScreenComponent({
     setBgmVolume,
     setSfxVolume,
     setPlayerAvatarId,
+    setPlayerAvatarVisible,
     setCareerModeEnabled,
+    setGameDifficulty,
     translate,
   } = useSettings();
   const { careerState, loaded: careerLoaded, resetCareerProgress } = useCareer();
@@ -73,6 +76,25 @@ function SettingsScreenComponent({
     label: translate(`bgm.${track.toLowerCase()}`),
   }));
 
+  const difficultyOptions = GAME_DIFFICULTIES.map((value) => ({
+    value,
+    label:
+      value === 'casual'
+        ? translate('settings.difficultyCasual')
+        : value === 'standard'
+          ? translate('settings.difficultyStandard')
+          : translate('settings.difficultyPro'),
+  }));
+
+  const difficultyDescriptionKey: Record<
+    GameDifficulty,
+    'settings.difficultyCasualDesc' | 'settings.difficultyStandardDesc' | 'settings.difficultyProDesc'
+  > = {
+    casual: 'settings.difficultyCasualDesc',
+    standard: 'settings.difficultyStandardDesc',
+    pro: 'settings.difficultyProDesc',
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
@@ -106,12 +128,44 @@ function SettingsScreenComponent({
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{translate('settings.avatars')}</Text>
+            <ChipSelector
+              options={[
+                {
+                  value: 'show' as const,
+                  label: translate('settings.playerAvatarShow'),
+                },
+                {
+                  value: 'hide' as const,
+                  label: translate('settings.playerAvatarHide'),
+                },
+              ]}
+              value={settings.playerAvatarVisible ? 'show' : 'hide'}
+              onChange={(mode) => setPlayerAvatarVisible(mode === 'show')}
+              accessibilityLabel={translate('settings.playerAvatarVisibility')}
+            />
             <AvatarPicker
               label={translate('settings.playerAvatar')}
               description={translate('settings.playerAvatarDescription')}
               value={settings.playerAvatarId}
               onChange={setPlayerAvatarId}
+              gridExpanded={settings.playerAvatarVisible}
+              collapsedHint={translate('settings.playerAvatarCollapsedHint')}
             />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {translate('settings.difficultyTitle')}
+            </Text>
+            <ChipSelector
+              options={difficultyOptions}
+              value={settings.gameDifficulty}
+              onChange={setGameDifficulty}
+              accessibilityLabel={translate('settings.difficultyTitle')}
+            />
+            <Text style={styles.careerRules}>
+              {translate(difficultyDescriptionKey[settings.gameDifficulty])}
+            </Text>
           </View>
 
           <View style={styles.section}>
