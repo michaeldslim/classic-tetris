@@ -4,6 +4,11 @@ export const ko: TranslationSchema = {
   app: {
     title: 'TETRIS',
   },
+  common: {
+    rotateToPortraitTitle: '세로 모드로 돌려주세요',
+    rotateToPortraitBodyLine1: '클래식 테트리스는 휴대폰에서 세로 화면에 최적화되어 있습니다.',
+    rotateToPortraitBodyLine2: '기기를 세로로 돌려 주세요.',
+  },
   home: {
     startGame: '게임 시작',
     continueGame: '이어하기',

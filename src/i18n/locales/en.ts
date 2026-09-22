@@ -2,6 +2,11 @@ export type TranslationSchema = {
   app: {
     title: string;
   };
+  common: {
+    rotateToPortraitTitle: string;
+    rotateToPortraitBodyLine1: string;
+    rotateToPortraitBodyLine2: string;
+  };
   home: {
     startGame: string;
     continueGame: string;
@@ -216,6 +221,11 @@ export type TranslationSchema = {
 export const en: TranslationSchema = {
   app: {
     title: 'TETRIS',
+  },
+  common: {
+    rotateToPortraitTitle: 'Rotate your device',
+    rotateToPortraitBodyLine1: 'Classic Tetris works best in portrait mode on phones.',
+    rotateToPortraitBodyLine2: 'Please turn your device upright.',
   },
   home: {
     startGame: 'START GAME',
