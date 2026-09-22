@@ -1,4 +1,4 @@
 <resources>
   <string name="app_name">classic-tetris-tmp</string>
-  <string name="expo_runtime_version">2.3.0</string>
+  <string name="expo_runtime_version">2.4.0</string>
 </resources>
