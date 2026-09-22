@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
   clearGameSession,
   loadGameSession,
@@ -18,11 +18,15 @@ import { SettingsScreen } from './src/components/SettingsScreen';
 import { StartScreen } from './src/components/StartScreen';
 import { DevChairmanPreviewOverlay } from './src/components/DevChairmanPreviewOverlay';
 import { SettingsProvider } from './src/settings/SettingsContext';
+import { PhoneLandscapeWarning } from './src/components/PhoneLandscapeWarning';
+import { TabletLandscapeShell } from './src/components/TabletLandscapeShell';
+import { getOrientationGuide } from './src/hooks/useScreenLayout';
 import { theme } from './src/theme/colors';
 
 type OverlayScreen = 'home' | 'settings' | 'career' | 'leaderboard' | null;
 
 function AppRoot() {
+  const { width, height } = useWindowDimensions();
   const { setBgmPaused } = useGameAudio();
   const [gameStarted, setGameStarted] = useState(false);
   const [overlay, setOverlay] = useState<OverlayScreen>('home');
@@ -139,9 +143,14 @@ function AppRoot() {
     setForceResumeToken((token) => token + 1);
   }, []);
 
+  if (getOrientationGuide(width, height) === 'portrait') {
+    return <PhoneLandscapeWarning />;
+  }
+
   return (
     <>
       <View style={styles.root}>
+      <TabletLandscapeShell>
       {gameStarted ? (
         <View style={styles.gameLayer}>
           <GameScreen
@@ -196,6 +205,7 @@ function AppRoot() {
           <LeaderboardScreen onBack={handleCloseLeaderboard} />
         </View>
       ) : null}
+      </TabletLandscapeShell>
       </View>
 
       {__DEV__ ? (
