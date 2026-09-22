@@ -74,9 +74,10 @@ export function mergePiece(
   const nextBoard = board.map((row) => [...row]);
 
   for (const { x, y } of getPieceCells(type, rotation, pieceX, pieceY)) {
-    if (y >= 0 && y < BOARD_HEIGHT && x >= 0 && x < BOARD_WIDTH) {
-      nextBoard[y][x] = type;
+    if (y < 0 || y >= BOARD_HEIGHT || x < 0 || x >= BOARD_WIDTH) {
+      continue;
     }
+    nextBoard[y][x] = type;
   }
 
   return nextBoard;

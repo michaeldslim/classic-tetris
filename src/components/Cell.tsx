@@ -60,11 +60,16 @@ function CellComponent({
             backgroundColor: checkerLight
               ? theme.boardCheckerLight
               : theme.boardCheckerDark,
-            borderColor: showGrid ? theme.cellBorder : theme.cellGridSubtle,
-            borderWidth: showGrid ? 1 : 0.5,
           },
         ]}
-      />
+      >
+        {showGrid ? (
+          <>
+            <View style={[styles.gridLineRight, { backgroundColor: theme.cellGridSubtle }]} />
+            <View style={[styles.gridLineBottom, { backgroundColor: theme.cellGridSubtle }]} />
+          </>
+        ) : null}
+      </View>
     );
   }
 
@@ -95,10 +100,13 @@ function CellComponent({
             width: size,
             height: size,
             backgroundColor: ghostColors.fill,
-            borderColor: ghostColors.border,
           },
         ]}
-      />
+      >
+        <View
+          style={[StyleSheet.absoluteFill, { borderWidth: 1, borderColor: ghostColors.border }]}
+        />
+      </View>
     );
   }
 
@@ -109,7 +117,6 @@ function CellComponent({
         {
           width: size,
           height: size,
-          borderColor: colors.border,
         },
       ]}
     >
@@ -159,9 +166,24 @@ export const Cell = memo(CellComponent, (prev, next) =>
 );
 
 const styles = StyleSheet.create({
-  emptyCell: {},
+  emptyCell: {
+    overflow: 'hidden',
+  },
+  gridLineRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: StyleSheet.hairlineWidth,
+  },
+  gridLineBottom: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+  },
   blockShell: {
-    borderWidth: 1,
     overflow: 'hidden',
   },
   blockFace: {
@@ -192,6 +214,6 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   ghostCell: {
-    borderWidth: 1,
+    overflow: 'hidden',
   },
 });

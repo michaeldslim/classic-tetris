@@ -31,6 +31,23 @@ describe('board', () => {
     expect(filled).toHaveLength(4);
   });
 
+  it('rejects out-of-bounds horizontal placement for O', () => {
+    expect(isValidPosition(createEmptyBoard(), 'O', 0, 6, 10)).toBe(false);
+    expect(isValidPosition(createEmptyBoard(), 'O', 0, 5, 10)).toBe(true);
+  });
+
+  it('merges a full O piece on the right edge', () => {
+    const board = createEmptyBoard();
+    const merged = mergePiece(board, 'O', 0, 5, 14);
+    const filled = merged.flat().filter((cell) => cell === 'O');
+
+    expect(filled).toHaveLength(4);
+    expect(merged[14]![6]).toBe('O');
+    expect(merged[14]![7]).toBe('O');
+    expect(merged[15]![6]).toBe('O');
+    expect(merged[15]![7]).toBe('O');
+  });
+
   it('finds full line row indices', () => {
     const board = createEmptyBoard();
     for (let x = 0; x < BOARD_WIDTH; x++) {

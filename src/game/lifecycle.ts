@@ -4,6 +4,7 @@ import {
   clearLines,
   createEmptyBoard,
   findFullLineRows,
+  isValidPosition,
 } from './board';
 import { getNextStage, isStageComplete } from './campaign';
 import { finalizeBonusLineClear } from './bonusGame';
@@ -192,6 +193,11 @@ export function lockActivePiece(state: GameState): GameState {
   }
 
   const { type, x, y, rotation } = state.active;
+
+  if (!isValidPosition(state.board, type, rotation, x, y)) {
+    return state;
+  }
+
   const mergedBoard = mergePiece(state.board, type, rotation, x, y);
   const fullRows = findFullLineRows(mergedBoard);
 

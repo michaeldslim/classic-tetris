@@ -118,6 +118,9 @@ function BoardViewComponent({
     outputRange: [0, 0.45],
   });
 
+  const gridWidth = BOARD_WIDTH * cellSize;
+  const gridHeight = BOARD_HEIGHT * cellSize;
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <Animated.View
@@ -137,9 +140,17 @@ function BoardViewComponent({
             },
           ]}
         />
-        <View style={styles.innerWell}>
+        <View
+          style={[
+            styles.innerWell,
+            { width: gridWidth + 4, height: gridHeight + 4 },
+          ]}
+        >
           {Array.from({ length: BOARD_HEIGHT }, (_, y) => (
-            <View key={`row-${y}`} style={styles.row}>
+            <View
+              key={`row-${y}`}
+              style={[styles.row, { width: gridWidth, height: cellSize }]}
+            >
               {Array.from({ length: BOARD_WIDTH }, (_, x) => {
                 const key = `${x},${y}`;
                 const locked = board[y]?.[x] ?? null;
