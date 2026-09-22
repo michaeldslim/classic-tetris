@@ -3,7 +3,7 @@
     "name": "Classic Tetris",
     "slug": "classic-tetris",
     "version": "2.3.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
