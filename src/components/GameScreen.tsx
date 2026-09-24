@@ -71,6 +71,8 @@ const TITLE_ROW_HEIGHT = 40;
 /** Title + PlayerStatusBar margins/padding (casual chrome estimate). */
 const CASUAL_HEADER_CHROME_ESTIMATE = 120;
 const PLAY_STATUS_HEADER_HEIGHT = 118;
+/** Extra gap below system status bar on phones (standard/pro merged HUD). */
+const PHONE_STANDARD_TOP_GAP = 12;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
 
@@ -209,6 +211,7 @@ export function GameScreen({
       : insets.top +
         insets.bottom +
         PLAY_STATUS_HEADER_HEIGHT +
+        PHONE_STANDARD_TOP_GAP +
         BOTTOM_LIFT +
         16;
     return Math.max(windowHeight - chromeHeight, 320);
@@ -221,6 +224,8 @@ export function GameScreen({
   ]);
 
   const boardBottomInset = isWideLayout ? BOTTOM_LIFT : BOTTOM_LIFT + insets.bottom;
+  const standardPhoneTopGap =
+    !isCasualLayout && !isWideLayout ? PHONE_STANDARD_TOP_GAP : 0;
 
   const contentWidth = windowWidth - HORIZONTAL_PADDING * 2;
 
@@ -277,6 +282,7 @@ export function GameScreen({
     const boardHeight =
       blockHeight -
       PLAY_STATUS_HEADER_HEIGHT -
+      standardPhoneTopGap -
       boardBottomInset -
       BOARD_BORDER;
     return computeCellSize(
@@ -294,6 +300,7 @@ export function GameScreen({
     contentWidth,
     fallbackPlayHeight,
     boardBottomInset,
+    standardPhoneTopGap,
     tutorialLayoutHeight,
     playfieldRows,
     playfieldCols,
@@ -1127,6 +1134,7 @@ export function GameScreen({
                 style={[
                   styles.playArea,
                   isWideLayout ? styles.playAreaWide : styles.playAreaCentered,
+                  standardPhoneTopGap > 0 && { paddingTop: standardPhoneTopGap },
                 ]}
               >
                 <View
