@@ -17,11 +17,11 @@ export function TabletLandscapeShell({ children }: TabletLandscapeShellProps) {
   return (
     <View style={styles.root}>
       <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
-        <LandscapeSideArt side="left" />
+        <LandscapeSideArt side="left" variant="minimal" />
       </View>
       <View style={styles.center}>{children}</View>
       <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
-        <LandscapeSideArt side="right" />
+        <LandscapeSideArt side="right" variant="minimal" />
       </View>
     </View>
   );
