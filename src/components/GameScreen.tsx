@@ -29,7 +29,7 @@ import {
   type GameSessionSnapshot,
 } from '../game/gameStorage';
 import { BOARD_FRAME_SIZE } from '../theme/colors';
-import { BOARD_WIDTH, computeCellSize } from '../game/types';
+import { BOARD_HEIGHT, BOARD_WIDTH, computeCellSize } from '../game/types';
 import type { EngineAction, GameAction } from '../game/types';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useGameFeedback } from '../hooks/useGameFeedback';
@@ -47,21 +47,16 @@ import { BoardView } from './BoardView';
 import { BonusGameOverlay } from './BonusGameOverlay';
 import { ChairmanSaveModal } from './ChairmanSaveModal';
 import { GameOverlay } from './GameOverlay';
-import { GestureTutorial, GESTURE_TUTORIAL_HEIGHT } from './GestureTutorial';
-import { PlayerStatusBar } from './PlayerStatusBar';
+import { PlayStatusHeader } from './PlayStatusHeader';
 import { PromotionOverlay } from './PromotionOverlay';
 import { SwipeZone } from './TouchControls';
-import { HudPanel } from './HudPanel';
 
 const HORIZONTAL_PADDING = 12;
-const HUD_WIDTH = 72;
-const PLAY_GAP = 8;
 const BOARD_BORDER = BOARD_FRAME_SIZE;
-const TUTORIAL_GAP = 12;
 const BOTTOM_LIFT = 24;
 
 const TITLE_ROW_HEIGHT = 40;
-const PROFILE_BAR_HEIGHT = 72;
+const PLAY_STATUS_HEADER_HEIGHT = 108;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
 
@@ -107,7 +102,7 @@ export function GameScreen({
   const { saveChairmanEntry } = useLeaderboard();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const [playSection, setPlaySection] = useState({ width: 0, height: 0 });
+  const [playBlockLayout, setPlayBlockLayout] = useState({ width: 0, height: 0 });
   const [paused, setPaused] = useState(false);
   const [lastAction, setLastAction] = useState<GameAction | null>(null);
   const [careerResult, setCareerResult] = useState<PromotionResult | null>(null);
@@ -183,49 +178,43 @@ export function GameScreen({
     ? Math.ceil(state.bonus.timeRemainingMs / 1000)
     : undefined;
 
-  const tutorialLayoutHeight = GESTURE_TUTORIAL_HEIGHT + TUTORIAL_GAP;
-
   const fallbackPlayHeight = useMemo(() => {
     const chromeHeight =
       insets.top +
       insets.bottom +
       TITLE_ROW_HEIGHT +
-      PROFILE_BAR_HEIGHT +
+      PLAY_STATUS_HEADER_HEIGHT +
       BOTTOM_LIFT +
-      tutorialLayoutHeight +
       24;
     return Math.max(windowHeight - chromeHeight, 320);
-  }, [
-    insets.top,
-    insets.bottom,
-    tutorialLayoutHeight,
-    windowHeight,
-  ]);
+  }, [insets.top, insets.bottom, windowHeight]);
+
+  const contentWidth = windowWidth - HORIZONTAL_PADDING * 2;
 
   const cellSize = useMemo(() => {
-    const sectionWidth =
-      playSection.width > 0
-        ? playSection.width
-        : windowWidth - HORIZONTAL_PADDING * 2;
-    const sectionHeight =
-      playSection.height >= MIN_PLAY_SECTION_HEIGHT
-        ? playSection.height
+    const blockWidth =
+      playBlockLayout.width > 0 ? playBlockLayout.width : contentWidth;
+    const blockHeight =
+      playBlockLayout.height >= MIN_PLAY_SECTION_HEIGHT
+        ? playBlockLayout.height
         : fallbackPlayHeight;
-    const boardWidth = sectionWidth - HUD_WIDTH - PLAY_GAP - BOARD_BORDER;
-    const playAreaHeight = sectionHeight - tutorialLayoutHeight - BOTTOM_LIFT;
-    const boardHeight = playAreaHeight - BOARD_BORDER;
-    return computeCellSize(boardWidth, boardHeight);
+    const boardWidth = blockWidth - BOARD_BORDER;
+    const boardHeight =
+      blockHeight -
+      PLAY_STATUS_HEADER_HEIGHT -
+      BOTTOM_LIFT -
+      BOARD_BORDER;
+    return computeCellSize(boardWidth, Math.max(boardHeight, 120));
   }, [
-    playSection.width,
-    playSection.height,
-    windowWidth,
+    playBlockLayout.width,
+    playBlockLayout.height,
+    contentWidth,
     fallbackPlayHeight,
-    tutorialLayoutHeight,
   ]);
 
   const boardOuterWidth = BOARD_WIDTH * cellSize + BOARD_BORDER;
-  const boardColumnWidth = boardOuterWidth;
-  const gameClusterWidth = boardOuterWidth + PLAY_GAP + HUD_WIDTH;
+  const boardOuterHeight = BOARD_HEIGHT * cellSize + BOARD_BORDER;
+  const playStackWidth = boardOuterWidth;
 
   const displayBoard = state.board;
 
@@ -278,9 +267,9 @@ export function GameScreen({
     }
   }, []);
 
-  const handlePlaySectionLayout = useCallback((event: LayoutChangeEvent) => {
+  const handlePlayBlockLayout = useCallback((event: LayoutChangeEvent) => {
     const { width: layoutWidth, height: layoutHeight } = event.nativeEvent.layout;
-    setPlaySection({ width: layoutWidth, height: layoutHeight });
+    setPlayBlockLayout({ width: layoutWidth, height: layoutHeight });
   }, []);
 
   const handleAction = useCallback((action: GameAction) => {
@@ -892,68 +881,70 @@ export function GameScreen({
         </View>
 
         <View style={styles.content}>
-          <View style={styles.playBlock}>
-            <PlayerStatusBar
-              avatarId={settings.playerAvatarId}
-              careerMode={showCareerBar}
-              difficultyLabel={showCareerBar ? difficultyBadgeLabel : undefined}
-              career={careerBar ?? undefined}
-              score={state.score}
-              highScore={showCareerBar ? undefined : scoreRecord.highScore}
-              isPersonalBest={!showCareerBar && runSetRecord}
-              scoreLabel={translate('profile.score')}
-              highScoreLabel={translate('profile.highScore')}
-              newBestLabel={translate('profile.newBest')}
-            />
+          <View style={styles.playBlock} onLayout={handlePlayBlockLayout}>
+            <View style={styles.playArea}>
+              <View style={styles.playAreaSpacer} />
 
-            <View
-              style={[styles.playSection, { minHeight: fallbackPlayHeight }]}
-              onLayout={handlePlaySectionLayout}
-            >
-              <View style={styles.playArea}>
-                <View style={styles.playAreaSpacer} />
+              <View style={[styles.playStack, { width: playStackWidth }]}>
+                <PlayStatusHeader
+                  avatarId={settings.playerAvatarId}
+                  careerMode={showCareerBar}
+                  difficultyLabel={showCareerBar ? difficultyBadgeLabel : undefined}
+                  career={careerBar ?? undefined}
+                  score={state.score}
+                  highScore={showCareerBar ? undefined : scoreRecord.highScore}
+                  isPersonalBest={!showCareerBar && runSetRecord}
+                  scoreLabel={translate('profile.score')}
+                  highScoreLabel={translate('profile.highScore')}
+                  newBestLabel={translate('profile.newBest')}
+                  stats={{
+                    score: state.score,
+                    level: state.level,
+                    stage: state.stage,
+                    lines: state.lines,
+                    lineTarget,
+                    gravityTier,
+                    bonusMode: state.mode === 'bonus',
+                    bonusTimerSec,
+                    bonusMultiplier: BONUS_SCORE_MULTIPLIER,
+                  }}
+                  nextPiece={state.next}
+                />
 
-                <View style={[styles.centerColumn, { gap: TUTORIAL_GAP }]}>
+                <View
+                  style={[
+                    styles.boardSection,
+                    { width: boardOuterWidth, height: boardOuterHeight },
+                  ]}
+                >
                   <View
-                    style={[styles.gameClusterWrap, { width: gameClusterWidth }]}
+                    style={[
+                      styles.gameClusterWrap,
+                      { width: boardOuterWidth, height: boardOuterHeight },
+                    ]}
                   >
-                    <View style={styles.gameCluster}>
-                      <View
-                        style={[styles.boardColumn, { width: boardColumnWidth }]}
+                    <View
+                      style={[
+                        styles.boardColumn,
+                        { width: boardOuterWidth, height: boardOuterHeight },
+                      ]}
+                    >
+                      <SwipeZone
+                        onAction={handleAction}
+                        onDas={handleDas}
+                        onSoftDropHold={handleSoftDropHold}
+                        disabled={inputDisabled}
                       >
-                        <SwipeZone
-                          onAction={handleAction}
-                          onDas={handleDas}
-                          onSoftDropHold={handleSoftDropHold}
-                          disabled={inputDisabled}
-                        >
-                          <BoardView
-                            board={displayBoard}
-                            cellSize={cellSize}
-                            active={state.active}
-                            ghost={ghostPiece}
-                            lineClear={state.lineClear}
-                            stageCleared={state.stageCleared}
-                            lockPulseKey={lockPulseKey}
-                          />
-                        </SwipeZone>
-                      </View>
-
-                      <HudPanel
-                        careerMode={showCareerBar}
-                        stats={{
-                          score: state.score,
-                          level: state.level,
-                          stage: state.stage,
-                          lines: state.lines,
-                          lineTarget,
-                          gravityTier,
-                          bonusMode: state.mode === 'bonus',
-                          bonusTimerSec,
-                          bonusMultiplier: BONUS_SCORE_MULTIPLIER,
-                        }}
-                        nextPiece={state.next}
-                      />
+                        <BoardView
+                          board={displayBoard}
+                          cellSize={cellSize}
+                          active={state.active}
+                          ghost={ghostPiece}
+                          lineClear={state.lineClear}
+                          stageCleared={state.stageCleared}
+                          lockPulseKey={lockPulseKey}
+                        />
+                      </SwipeZone>
                     </View>
 
                     {paused && !modalBlocking ? (
@@ -1020,12 +1011,10 @@ export function GameScreen({
                       onComplete={handlePromotionComplete}
                     />
                   </View>
-
-                  <GestureTutorial width={gameClusterWidth} />
                 </View>
-
-                <View style={styles.playAreaSpacer} />
               </View>
+
+              <View style={styles.playAreaSpacer} />
             </View>
           </View>
         </View>
@@ -1098,36 +1087,35 @@ const styles = StyleSheet.create({
   playBlock: {
     flex: 1,
     width: '100%',
+    minHeight: 0,
     backgroundColor: theme.background,
   },
   playArea: {
     flex: 1,
     minHeight: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     width: '100%',
   },
   playAreaSpacer: {
     flex: 1,
   },
-  centerColumn: {
-    alignItems: 'flex-start',
+  playStack: {
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.panelBorder,
+    backgroundColor: theme.panel,
+    overflow: 'hidden',
   },
   gameClusterWrap: {
     position: 'relative',
   },
-  gameCluster: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: PLAY_GAP,
-  },
   boardColumn: {
     alignItems: 'flex-start',
   },
-  playSection: {
-    flex: 1,
-    minHeight: 0,
-    paddingBottom: BOTTOM_LIFT,
-    backgroundColor: theme.background,
+  boardSection: {
+    backgroundColor: theme.boardBackground,
+    marginBottom: BOTTOM_LIFT,
   },
 });
