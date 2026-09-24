@@ -122,7 +122,7 @@ export function reduce(state: GameState, action: EngineAction): GameState {
   }
 
   if (typeof action === 'object' && action.type === 'UPDATE_PLAY_PROFILE') {
-    return {
+    return reconcileGameState({
       ...state,
       gameDifficulty: action.gameDifficulty,
       gravityScale: action.gravityScale,
@@ -134,7 +134,7 @@ export function reduce(state: GameState, action: EngineAction): GameState {
       ...(action.gravityTierOverride !== undefined
         ? { gravityTierOverride: action.gravityTierOverride }
         : {}),
-    };
+    });
   }
 
   if (typeof action === 'object' && action.type === 'RESTART') {

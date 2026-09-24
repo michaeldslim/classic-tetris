@@ -5,10 +5,14 @@ import type { BonusGameState, CampaignSnapshot } from './bonusGame';
 import { reconcileGameState } from './lifecycle';
 import { isValidTetrominoType, tetrominoTypes } from './tetrominoes';
 import type { ActivePiece, GameMode, GameState, LineClearEffect } from './types';
-import { BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PLAY_TIMING } from './types';
+import {
+  DEFAULT_PLAY_TIMING,
+  VALID_BOARD_HEIGHTS,
+  VALID_BOARD_WIDTHS,
+} from './types';
 
 const SESSION_KEY = '@classic-tetris/session';
-const SESSION_VERSION = 3;
+const SESSION_VERSION = 5;
 
 export type BonusPhaseSnapshot = 'none' | 'intro' | 'result';
 
@@ -54,14 +58,24 @@ function parseBonusPhase(value: unknown): BonusPhaseSnapshot | null {
 }
 
 function parseBoard(value: unknown): GameState['board'] | null {
-  if (!Array.isArray(value) || value.length !== BOARD_HEIGHT) {
+  if (
+    !Array.isArray(value) ||
+    !VALID_BOARD_HEIGHTS.includes(
+      value.length as (typeof VALID_BOARD_HEIGHTS)[number],
+    )
+  ) {
     return null;
   }
 
   const board: GameState['board'] = [];
 
   for (const row of value) {
-    if (!Array.isArray(row) || row.length !== BOARD_WIDTH) {
+    if (
+      !Array.isArray(row) ||
+      !VALID_BOARD_WIDTHS.includes(
+        row.length as (typeof VALID_BOARD_WIDTHS)[number],
+      )
+    ) {
       return null;
     }
 

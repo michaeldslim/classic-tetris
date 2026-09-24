@@ -1,11 +1,109 @@
+import type { GameDifficulty } from '../settings/types';
+import { DEFAULT_GAME_DIFFICULTY } from '../settings/types';
 import type { TetrominoType } from '../theme/colors';
 import { tetrominoShapes } from './tetrominoes';
-import { BOARD_HEIGHT, BOARD_WIDTH, type BoardCell } from './types';
+import {
+  getBoardHeight,
+  getBoardWidth,
+  type ActivePiece,
+  type BoardCell,
+  type GameState,
+} from './types';
 
-export function createEmptyBoard(): BoardCell[][] {
-  return Array.from({ length: BOARD_HEIGHT }, () =>
-    Array.from({ length: BOARD_WIDTH }, () => null),
+function boardWidth(board: BoardCell[][]): number {
+  return board[0]?.length ?? getBoardWidth('standard');
+}
+
+function boardHeight(board: BoardCell[][]): number {
+  return board.length;
+}
+
+export function createEmptyBoard(
+  difficulty: GameDifficulty = DEFAULT_GAME_DIFFICULTY,
+): BoardCell[][] {
+  const height = getBoardHeight(difficulty);
+  const width = getBoardWidth(difficulty);
+  return Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => null),
   );
+}
+
+export function resizeBoardToHeight(
+  board: BoardCell[][],
+  targetHeight: number,
+): BoardCell[][] {
+  const width = boardWidth(board);
+  const currentHeight = boardHeight(board);
+  if (currentHeight === targetHeight) {
+    return board.map((row) => [...row]);
+  }
+
+  if (targetHeight > currentHeight) {
+    const padRows = targetHeight - currentHeight;
+    const padding = Array.from({ length: padRows }, () =>
+      Array.from({ length: width }, () => null),
+    );
+    return [...padding, ...board.map((row) => [...row])];
+  }
+
+  const trimRows = currentHeight - targetHeight;
+  return board.slice(trimRows).map((row) => [...row]);
+}
+
+export function resizeBoardToWidth(
+  board: BoardCell[][],
+  targetWidth: number,
+): BoardCell[][] {
+  const currentWidth = boardWidth(board);
+  if (currentWidth === targetWidth) {
+    return board.map((row) => [...row]);
+  }
+
+  if (targetWidth > currentWidth) {
+    const padLeft = targetWidth - currentWidth;
+    return board.map((row) => [
+      ...Array.from({ length: padLeft }, () => null),
+      ...row,
+    ]);
+  }
+
+  const trimLeft = currentWidth - targetWidth;
+  return board.map((row) => row.slice(trimLeft));
+}
+
+/** Match locked cells and active piece to the playfield for the current difficulty. */
+export function ensureBoardForDifficulty(state: GameState): GameState {
+  const targetHeight = getBoardHeight(state.gameDifficulty);
+  const targetWidth = getBoardWidth(state.gameDifficulty);
+  const currentHeight = boardHeight(state.board);
+  const currentWidth = boardWidth(state.board);
+
+  if (currentHeight === targetHeight && currentWidth === targetWidth) {
+    return state;
+  }
+
+  const heightDelta = targetHeight - currentHeight;
+  const widthDelta = targetWidth - currentWidth;
+
+  let nextBoard = resizeBoardToHeight(state.board, targetHeight);
+  nextBoard = resizeBoardToWidth(nextBoard, targetWidth);
+
+  let active: ActivePiece | null = state.active;
+
+  if (active) {
+    active = {
+      ...active,
+      x: active.x + widthDelta,
+      y: active.y + heightDelta,
+    };
+    if (
+      !isValidPosition(nextBoard, active.type, active.rotation, active.x, active.y)
+    ) {
+      active = null;
+    }
+  }
+
+  return { ...state, board: nextBoard, active };
 }
 
 function rotateShape(shape: number[][]): number[][] {
@@ -53,8 +151,10 @@ export function isValidPosition(
   pieceX: number,
   pieceY: number,
 ): boolean {
+  const width = boardWidth(board);
+  const height = boardHeight(board);
   for (const { x, y } of getPieceCells(type, rotation, pieceX, pieceY)) {
-    if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
+    if (x < 0 || x >= width || y >= height) {
       return false;
     }
     if (y >= 0 && board[y][x] !== null) {
@@ -72,9 +172,11 @@ export function mergePiece(
   pieceY: number,
 ): BoardCell[][] {
   const nextBoard = board.map((row) => [...row]);
+  const width = boardWidth(board);
+  const height = boardHeight(board);
 
   for (const { x, y } of getPieceCells(type, rotation, pieceX, pieceY)) {
-    if (y < 0 || y >= BOARD_HEIGHT || x < 0 || x >= BOARD_WIDTH) {
+    if (y < 0 || y >= height || x < 0 || x >= width) {
       continue;
     }
     nextBoard[y][x] = type;
@@ -87,11 +189,13 @@ export function clearLines(board: BoardCell[][]): {
   board: BoardCell[][];
   linesCleared: number;
 } {
+  const width = boardWidth(board);
+  const height = boardHeight(board);
   const remaining = board.filter((row) => row.some((cell) => cell === null));
-  const linesCleared = BOARD_HEIGHT - remaining.length;
+  const linesCleared = height - remaining.length;
 
-  while (remaining.length < BOARD_HEIGHT) {
-    remaining.unshift(Array.from({ length: BOARD_WIDTH }, () => null));
+  while (remaining.length < height) {
+    remaining.unshift(Array.from({ length: width }, () => null));
   }
 
   return { board: remaining, linesCleared };

@@ -79,6 +79,12 @@ export type TranslationSchema = {
     highScore: string;
     newBest: string;
   };
+  tutorial: {
+    move: string;
+    rotate: string;
+    softDrop: string;
+    hardDrop: string;
+  };
   overlay: {
     paused: string;
     gameOver: string;
@@ -295,6 +301,12 @@ export const en: TranslationSchema = {
     line: 'Lines',
     highScore: 'Best',
     newBest: 'NEW BEST',
+  },
+  tutorial: {
+    move: 'Move',
+    rotate: 'Rotate',
+    softDrop: 'Hold ↓',
+    hardDrop: 'Swipe ↓',
   },
   overlay: {
     paused: 'PAUSED',

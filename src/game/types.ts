@@ -108,21 +108,92 @@ export type GameStats = {
   bonusMultiplier?: number;
 };
 
-export const BOARD_WIDTH = 10;
-export const BOARD_HEIGHT = 18;
+/** Casual (easy) — classic 8×16. */
+export const BOARD_WIDTH_CASUAL = 8;
+/** Standard and pro playfield width. */
+export const BOARD_WIDTH_STANDARD = 10;
+
+/** @deprecated Use getBoardWidth() or board[0].length from game state. */
+export const BOARD_WIDTH = BOARD_WIDTH_STANDARD;
+
+/** Casual (easy) playfield height. */
+export const BOARD_HEIGHT_CASUAL = 16;
+/** Standard and pro playfield height. */
+export const BOARD_HEIGHT_STANDARD = 18;
+
+/** @deprecated Use getBoardHeight() or board.length from game state. */
+export const BOARD_HEIGHT = BOARD_HEIGHT_STANDARD;
+
+export const VALID_BOARD_WIDTHS = [
+  BOARD_WIDTH_CASUAL,
+  BOARD_WIDTH_STANDARD,
+] as const;
+
+export const VALID_BOARD_HEIGHTS = [
+  BOARD_HEIGHT_CASUAL,
+  BOARD_HEIGHT_STANDARD,
+] as const;
+
+export function getBoardWidth(difficulty: GameDifficulty): number {
+  return difficulty === 'casual' ? BOARD_WIDTH_CASUAL : BOARD_WIDTH_STANDARD;
+}
+
+export function getBoardHeight(difficulty: GameDifficulty): number {
+  return difficulty === 'casual'
+    ? BOARD_HEIGHT_CASUAL
+    : BOARD_HEIGHT_STANDARD;
+}
+
 export const MINI_BOARD_SIZE = 4;
 
 export function computeCellSize(
   availableWidth: number,
   availableHeight: number,
+  boardHeight: number = BOARD_HEIGHT_STANDARD,
+  boardWidth: number = BOARD_WIDTH_STANDARD,
 ): number {
   return Math.max(
     Math.floor(
       Math.min(
-        availableWidth / BOARD_WIDTH,
-        availableHeight / BOARD_HEIGHT,
+        availableWidth / boardWidth,
+        availableHeight / boardHeight,
       ),
     ),
     1,
+  );
+}
+
+/** Side-HUD + bottom tutorial layout (casual / legacy 6c9dd4f sizing). */
+export type CasualPlayLayoutMetrics = {
+  sectionWidth: number;
+  sectionHeight: number;
+  tutorialLayoutHeight: number;
+  hudWidth?: number;
+  playGap?: number;
+  boardBorder?: number;
+  bottomLift?: number;
+  boardRows?: number;
+  boardCols?: number;
+};
+
+export function computeCasualPlayCellSize({
+  sectionWidth,
+  sectionHeight,
+  tutorialLayoutHeight,
+  hudWidth = 72,
+  playGap = 8,
+  boardBorder = 14,
+  bottomLift = 24,
+  boardRows = BOARD_HEIGHT_CASUAL,
+  boardCols = BOARD_WIDTH_CASUAL,
+}: CasualPlayLayoutMetrics): number {
+  const boardInnerWidth = sectionWidth - hudWidth - playGap - boardBorder;
+  const playAreaHeight = sectionHeight - tutorialLayoutHeight - bottomLift;
+  const boardInnerHeight = playAreaHeight - boardBorder;
+  return computeCellSize(
+    boardInnerWidth,
+    Math.max(boardInnerHeight, 120),
+    boardRows,
+    boardCols,
   );
 }

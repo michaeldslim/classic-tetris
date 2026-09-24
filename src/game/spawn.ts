@@ -2,8 +2,12 @@ import { drawFromBag } from './bag';
 import { isValidPosition } from './board';
 import type { ActivePiece, GameState } from './types';
 
-const SPAWN_X = 3;
 const SPAWN_Y = 0;
+
+/** Classic spawn column (8- and 10-wide playfields). */
+function getSpawnX(_board: GameState['board']): number {
+  return 3;
+}
 
 function resetDasState(state: GameState): Pick<
   GameState,
@@ -41,14 +45,15 @@ function endBonusFromBlockedSpawn(state: GameState): GameState {
 export function spawnNextPiece(state: GameState): GameState {
   const pieceType = state.next;
   const { piece: next, bag } = drawFromBag(state.bag);
+  const spawnX = getSpawnX(state.board);
   const active: ActivePiece = {
     type: pieceType,
-    x: SPAWN_X,
+    x: spawnX,
     y: SPAWN_Y,
     rotation: 0,
   };
 
-  if (!isValidPosition(state.board, pieceType, 0, SPAWN_X, SPAWN_Y)) {
+  if (!isValidPosition(state.board, pieceType, 0, spawnX, SPAWN_Y)) {
     if (state.mode === 'bonus') {
       return endBonusFromBlockedSpawn({
         ...state,

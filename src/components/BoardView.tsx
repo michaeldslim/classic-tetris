@@ -3,7 +3,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { getPieceCells } from '../game/board';
 import { getLineClearTier, isLineClearFlashBright } from '../game/lineClearFx';
 import type { ActivePiece, LineClearEffect } from '../game/types';
-import { BOARD_HEIGHT, BOARD_WIDTH, type BoardCell } from '../game/types';
+import { type BoardCell } from '../game/types';
 import { theme } from '../theme/colors';
 import { Cell } from './Cell';
 
@@ -118,8 +118,10 @@ function BoardViewComponent({
     outputRange: [0, 0.45],
   });
 
-  const gridWidth = BOARD_WIDTH * cellSize;
-  const gridHeight = BOARD_HEIGHT * cellSize;
+  const boardRows = board.length;
+  const boardCols = board[0]?.length ?? 0;
+  const gridWidth = boardCols * cellSize;
+  const gridHeight = boardRows * cellSize;
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -146,12 +148,12 @@ function BoardViewComponent({
             { width: gridWidth + 4, height: gridHeight + 4 },
           ]}
         >
-          {Array.from({ length: BOARD_HEIGHT }, (_, y) => (
+          {Array.from({ length: boardRows }, (_, y) => (
             <View
               key={`row-${y}`}
               style={[styles.row, { width: gridWidth, height: cellSize }]}
             >
-              {Array.from({ length: BOARD_WIDTH }, (_, x) => {
+              {Array.from({ length: boardCols }, (_, x) => {
                 const key = `${x},${y}`;
                 const locked = board[y]?.[x] ?? null;
                 const isActive = activeCells.has(key);

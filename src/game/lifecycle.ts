@@ -3,6 +3,7 @@ import {
   mergePiece,
   clearLines,
   createEmptyBoard,
+  ensureBoardForDifficulty,
   findFullLineRows,
   isValidPosition,
 } from './board';
@@ -41,6 +42,7 @@ function isLiveGameplay(state: GameState): boolean {
 /** Heal inconsistent piece/spawn state that can leave a frozen or missing piece. */
 export function reconcileGameState(state: GameState): GameState {
   state = healPlayProfileFields(state);
+  state = ensureBoardForDifficulty(state);
 
   if (state.active && !isValidTetrominoType(state.active.type)) {
     return spawnNextPiece({
@@ -234,7 +236,7 @@ export function goToCampaignStage(
 
   return withPlayProfile(
     spawnNextPiece({
-      board: createEmptyBoard(),
+      board: createEmptyBoard(state.gameDifficulty),
       active: null,
       next: first,
       bag: bagAfterFirst,
@@ -287,7 +289,7 @@ export function advanceToNextStage(state: GameState): GameState {
   const advanced = spawnNextPiece({
     ...state,
     mode: 'campaign',
-    board: createEmptyBoard(),
+    board: createEmptyBoard(state.gameDifficulty),
     level: next.level,
     stage: next.stage,
     lines: 0,
@@ -309,7 +311,7 @@ export function createInitialState(): GameState {
   return withPromotionStageDifficulty(
     withPlayProfile(
       spawnNextPiece({
-        board: createEmptyBoard(),
+        board: createEmptyBoard(DEFAULT_GAME_DIFFICULTY),
         active: null,
         next: first,
         bag: bagAfterFirst,
@@ -340,7 +342,7 @@ export function createStageRestartState(state: GameState): GameState {
 
   return withPlayProfile(
     spawnNextPiece({
-      board: createEmptyBoard(),
+      board: createEmptyBoard(state.gameDifficulty),
       active: null,
       next: first,
       bag: bagAfterFirst,

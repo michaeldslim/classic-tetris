@@ -83,6 +83,12 @@ export const ko: TranslationSchema = {
     highScore: '최고',
     newBest: '신기록',
   },
+  tutorial: {
+    move: '좌우 이동',
+    rotate: '블록 회전',
+    softDrop: '↓ 길게',
+    hardDrop: '↓ 스와이프',
+  },
   overlay: {
     paused: '일시정지',
     gameOver: '게임 오버',

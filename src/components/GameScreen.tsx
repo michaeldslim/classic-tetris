@@ -29,7 +29,12 @@ import {
   type GameSessionSnapshot,
 } from '../game/gameStorage';
 import { BOARD_FRAME_SIZE } from '../theme/colors';
-import { BOARD_HEIGHT, BOARD_WIDTH, computeCellSize } from '../game/types';
+import {
+  computeCasualPlayCellSize,
+  computeCellSize,
+  getBoardHeight,
+  getBoardWidth,
+} from '../game/types';
 import type { EngineAction, GameAction } from '../game/types';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useGameFeedback } from '../hooks/useGameFeedback';
@@ -47,15 +52,24 @@ import { BoardView } from './BoardView';
 import { BonusGameOverlay } from './BonusGameOverlay';
 import { ChairmanSaveModal } from './ChairmanSaveModal';
 import { GameOverlay } from './GameOverlay';
+import { GestureTutorial, GESTURE_TUTORIAL_HEIGHT } from './GestureTutorial';
+import { HudPanel } from './HudPanel';
+import { PlayerStatusBar } from './PlayerStatusBar';
 import { PlayStatusHeader } from './PlayStatusHeader';
 import { PromotionOverlay } from './PromotionOverlay';
 import { useScreenLayout } from '../hooks/useScreenLayout';
 import { SwipeZone } from './TouchControls';
 
 const HORIZONTAL_PADDING = 12;
+const HUD_WIDTH = 72;
+const PLAY_GAP = 8;
+const TUTORIAL_GAP = 12;
 const BOARD_BORDER = BOARD_FRAME_SIZE;
 const BOTTOM_LIFT = 24;
 
+const TITLE_ROW_HEIGHT = 40;
+/** Title + PlayerStatusBar margins/padding (casual chrome estimate). */
+const CASUAL_HEADER_CHROME_ESTIMATE = 120;
 const PLAY_STATUS_HEADER_HEIGHT = 118;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
@@ -103,7 +117,10 @@ export function GameScreen({
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { isWideLayout } = useScreenLayout();
+  const isCasualLayout = settings.gameDifficulty === 'casual';
   const [playBlockLayout, setPlayBlockLayout] = useState({ width: 0, height: 0 });
+  const [playSectionLayout, setPlaySectionLayout] = useState({ width: 0, height: 0 });
+  const [casualHeaderHeight, setCasualHeaderHeight] = useState(0);
   const [paused, setPaused] = useState(false);
   const [lastAction, setLastAction] = useState<GameAction | null>(null);
   const [careerResult, setCareerResult] = useState<PromotionResult | null>(null);
@@ -179,21 +196,77 @@ export function GameScreen({
     ? Math.ceil(state.bonus.timeRemainingMs / 1000)
     : undefined;
 
+  const tutorialLayoutHeight = GESTURE_TUTORIAL_HEIGHT + TUTORIAL_GAP;
+
   const fallbackPlayHeight = useMemo(() => {
-    const chromeHeight =
-      insets.top +
-      insets.bottom +
-      PLAY_STATUS_HEADER_HEIGHT +
-      BOTTOM_LIFT +
-      16;
+    const chromeHeight = isCasualLayout
+      ? insets.top +
+        insets.bottom +
+        CASUAL_HEADER_CHROME_ESTIMATE +
+        BOTTOM_LIFT +
+        tutorialLayoutHeight +
+        24
+      : insets.top +
+        insets.bottom +
+        PLAY_STATUS_HEADER_HEIGHT +
+        BOTTOM_LIFT +
+        16;
     return Math.max(windowHeight - chromeHeight, 320);
-  }, [insets.top, insets.bottom, windowHeight]);
+  }, [
+    insets.top,
+    insets.bottom,
+    isCasualLayout,
+    tutorialLayoutHeight,
+    windowHeight,
+  ]);
 
   const boardBottomInset = isWideLayout ? BOTTOM_LIFT : BOTTOM_LIFT + insets.bottom;
 
   const contentWidth = windowWidth - HORIZONTAL_PADDING * 2;
 
+  const playfieldRows = getBoardHeight(settings.gameDifficulty);
+  const playfieldCols = getBoardWidth(settings.gameDifficulty);
+
+  const resolvedCasualSectionHeight = useMemo(() => {
+    if (playSectionLayout.height >= MIN_PLAY_SECTION_HEIGHT) {
+      return playSectionLayout.height;
+    }
+    if (
+      playBlockLayout.height >= MIN_PLAY_SECTION_HEIGHT &&
+      casualHeaderHeight > 0
+    ) {
+      return Math.max(
+        playBlockLayout.height - casualHeaderHeight,
+        MIN_PLAY_SECTION_HEIGHT,
+      );
+    }
+    return fallbackPlayHeight;
+  }, [
+    playSectionLayout.height,
+    playBlockLayout.height,
+    casualHeaderHeight,
+    fallbackPlayHeight,
+  ]);
+
   const cellSize = useMemo(() => {
+    if (isCasualLayout) {
+      const sectionWidth =
+        playSectionLayout.width > 0
+          ? playSectionLayout.width
+          : contentWidth;
+      return computeCasualPlayCellSize({
+        sectionWidth,
+        sectionHeight: resolvedCasualSectionHeight,
+        tutorialLayoutHeight,
+        hudWidth: HUD_WIDTH,
+        playGap: PLAY_GAP,
+        boardBorder: BOARD_BORDER,
+        bottomLift: BOTTOM_LIFT,
+        boardRows: playfieldRows,
+        boardCols: playfieldCols,
+      });
+    }
+
     const blockWidth =
       playBlockLayout.width > 0 ? playBlockLayout.width : contentWidth;
     const blockHeight =
@@ -206,18 +279,33 @@ export function GameScreen({
       PLAY_STATUS_HEADER_HEIGHT -
       boardBottomInset -
       BOARD_BORDER;
-    return computeCellSize(boardWidth, Math.max(boardHeight, 120));
+    return computeCellSize(
+      boardWidth,
+      Math.max(boardHeight, 120),
+      playfieldRows,
+      playfieldCols,
+    );
   }, [
+    isCasualLayout,
+    resolvedCasualSectionHeight,
+    playSectionLayout.width,
     playBlockLayout.width,
     playBlockLayout.height,
     contentWidth,
     fallbackPlayHeight,
     boardBottomInset,
+    tutorialLayoutHeight,
+    playfieldRows,
+    playfieldCols,
   ]);
 
-  const boardOuterWidth = BOARD_WIDTH * cellSize + BOARD_BORDER;
-  const boardOuterHeight = BOARD_HEIGHT * cellSize + BOARD_BORDER;
-  const playStackWidth = boardOuterWidth;
+  const boardColCount = state.board[0]?.length ?? playfieldCols;
+  const boardOuterWidth = boardColCount * cellSize + BOARD_BORDER;
+  const boardOuterHeight = playfieldRows * cellSize + BOARD_BORDER;
+  const boardColumnWidth = boardOuterWidth;
+  const gameClusterWidth = boardOuterWidth + PLAY_GAP + HUD_WIDTH;
+  const standardPlayWidth =
+    playBlockLayout.width > 0 ? playBlockLayout.width : contentWidth;
 
   const displayBoard = state.board;
 
@@ -273,6 +361,15 @@ export function GameScreen({
   const handlePlayBlockLayout = useCallback((event: LayoutChangeEvent) => {
     const { width: layoutWidth, height: layoutHeight } = event.nativeEvent.layout;
     setPlayBlockLayout({ width: layoutWidth, height: layoutHeight });
+  }, []);
+
+  const handlePlaySectionLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width: layoutWidth, height: layoutHeight } = event.nativeEvent.layout;
+    setPlaySectionLayout({ width: layoutWidth, height: layoutHeight });
+  }, []);
+
+  const handleCasualHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    setCasualHeaderHeight(event.nativeEvent.layout.height);
   }, []);
 
   const handleAction = useCallback((action: GameAction) => {
@@ -850,171 +947,278 @@ export function GameScreen({
     state.campaignComplete ||
     bonusPhase !== 'none';
 
+  const hudStats = {
+    score: state.score,
+    level: state.level,
+    stage: state.stage,
+    lines: state.lines,
+    lineTarget,
+    gravityTier,
+    bonusMode: state.mode === 'bonus',
+    bonusTimerSec,
+    bonusMultiplier: BONUS_SCORE_MULTIPLIER,
+  };
+
+  const playOverlays = (
+    <>
+      {paused && !modalBlocking ? (
+        <GameOverlay
+          variant="pause"
+          onPrimary={handleResume}
+          onSecondary={state.mode === 'bonus' ? undefined : handleRetryStage}
+        />
+      ) : null}
+      {state.stageCleared &&
+      state.mode === 'campaign' &&
+      !showPromotionOverlay &&
+      !showChairmanSaveOverlay &&
+      !pendingBonus &&
+      bonusPhase === 'none' ? (
+        <GameOverlay
+          variant="stageClear"
+          level={state.level}
+          stage={state.stage}
+          careerHint={stageClearCareerHint}
+          onPrimary={handleNextStage}
+        />
+      ) : null}
+      {state.campaignComplete ? (
+        <GameOverlay
+          variant="campaignComplete"
+          score={state.score}
+          highScore={scoreRecord.highScore}
+          isNewHighScore={runSetRecord}
+          onPrimary={handleRestartCampaign}
+        />
+      ) : null}
+      {state.gameOver ? (
+        <GameOverlay
+          variant="gameOver"
+          score={state.score}
+          highScore={scoreRecord.highScore}
+          isNewHighScore={runSetRecord}
+          primaryDisabled={!gameOverRestartReady}
+          onPrimary={handleGameOverRestart}
+        />
+      ) : null}
+      <BonusGameOverlay
+        visible={bonusPhase === 'intro' || bonusPhase === 'result'}
+        phase={bonusPhase === 'result' ? 'result' : 'intro'}
+        lineTarget={bonusLineTargetDisplay}
+        earnedScore={state.bonus?.earnedScore}
+        success={state.bonus?.success}
+        onPrimary={
+          bonusPhase === 'result' ? handleBonusContinue : handleBonusStart
+        }
+      />
+      <PromotionOverlay
+        visible={showPromotionOverlay}
+        title={promotionTitle}
+        subtitle={promotionSubtitle}
+        isCeo={isCeoPromotion}
+        isChairman={isChairmanPromotion}
+        playerAvatarId={settings.playerAvatarId}
+        onComplete={handlePromotionComplete}
+      />
+    </>
+  );
+
+  const titleControls = (
+    <View style={styles.titleRow}>
+      <Pressable
+        style={styles.iconButton}
+        onPress={handleOpenSettings}
+        accessibilityRole="button"
+        accessibilityLabel={translate('accessibility.settings')}
+      >
+        <Text style={styles.iconLabel}>⚙</Text>
+      </Pressable>
+      <Pressable
+        style={styles.iconButton}
+        onPress={handlePauseToggle}
+        disabled={pauseDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={
+          paused
+            ? translate('accessibility.resume')
+            : translate('accessibility.pause')
+        }
+      >
+        <Text
+          style={[styles.pauseLabel, state.gameOver && styles.pauseLabelDisabled]}
+        >
+          {paused ? '▶' : '❚❚'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
         <View style={styles.content}>
           <View style={styles.playBlock} onLayout={handlePlayBlockLayout}>
-            <View
-              style={[
-                styles.playArea,
-                isWideLayout && styles.playAreaWide,
-              ]}
-            >
-              {!isWideLayout ? <View style={styles.playAreaSpacer} /> : null}
-
+            {isCasualLayout ? (
+              <>
+                <View onLayout={handleCasualHeaderLayout}>
+                  {titleControls}
+                  <PlayerStatusBar
+                    avatarId={settings.playerAvatarId}
+                    careerMode={showCareerBar}
+                    difficultyLabel={
+                      showCareerBar ? difficultyBadgeLabel : undefined
+                    }
+                    career={careerBar ?? undefined}
+                    score={state.score}
+                    highScore={showCareerBar ? undefined : scoreRecord.highScore}
+                    isPersonalBest={!showCareerBar && runSetRecord}
+                    scoreLabel={translate('profile.score')}
+                    highScoreLabel={translate('profile.highScore')}
+                    newBestLabel={translate('profile.newBest')}
+                  />
+                </View>
+                <View style={styles.playSection} onLayout={handlePlaySectionLayout}>
+                  <View style={styles.playArea}>
+                    <View style={styles.playAreaSpacer} />
+                    <View style={[styles.centerColumn, { gap: TUTORIAL_GAP }]}>
+                      <View
+                        style={[
+                          styles.gameClusterWrap,
+                          { width: gameClusterWidth },
+                        ]}
+                      >
+                        <View style={styles.gameCluster}>
+                          <View
+                            style={[
+                              styles.boardColumn,
+                              { width: boardColumnWidth },
+                            ]}
+                          >
+                            <SwipeZone
+                              onAction={handleAction}
+                              onDas={handleDas}
+                              onSoftDropHold={handleSoftDropHold}
+                              disabled={inputDisabled}
+                            >
+                              <BoardView
+                                board={displayBoard}
+                                cellSize={cellSize}
+                                active={state.active}
+                                ghost={ghostPiece}
+                                lineClear={state.lineClear}
+                                stageCleared={state.stageCleared}
+                                lockPulseKey={lockPulseKey}
+                              />
+                            </SwipeZone>
+                          </View>
+                          <HudPanel
+                            careerMode={showCareerBar}
+                            stats={hudStats}
+                            nextPiece={state.next}
+                          />
+                        </View>
+                        {playOverlays}
+                      </View>
+                      <GestureTutorial width={gameClusterWidth} />
+                    </View>
+                    <View style={styles.playAreaSpacer} />
+                  </View>
+                </View>
+              </>
+            ) : (
               <View
                 style={[
-                  styles.playStack,
-                  { width: playStackWidth },
-                  isWideLayout && styles.playStackWide,
+                  styles.playArea,
+                  isWideLayout ? styles.playAreaWide : styles.playAreaStandard,
                 ]}
               >
-                <PlayStatusHeader
-                  avatarId={settings.playerAvatarId}
-                  careerMode={showCareerBar}
-                  difficultyLabel={showCareerBar ? difficultyBadgeLabel : undefined}
-                  career={careerBar ?? undefined}
-                  score={state.score}
-                  highScore={showCareerBar ? undefined : scoreRecord.highScore}
-                  isPersonalBest={!showCareerBar && runSetRecord}
-                  scoreLabel={translate('profile.score')}
-                  highScoreLabel={translate('profile.highScore')}
-                  newBestLabel={translate('profile.newBest')}
-                  stats={{
-                    score: state.score,
-                    level: state.level,
-                    stage: state.stage,
-                    lines: state.lines,
-                    lineTarget,
-                    gravityTier,
-                    bonusMode: state.mode === 'bonus',
-                    bonusTimerSec,
-                    bonusMultiplier: BONUS_SCORE_MULTIPLIER,
-                  }}
-                  nextPiece={state.next}
-                  onOpenSettings={handleOpenSettings}
-                  onPauseToggle={handlePauseToggle}
-                  pauseDisabled={pauseDisabled}
-                  paused={paused}
-                  pauseDimmed={state.gameOver}
-                  settingsAccessibilityLabel={translate('accessibility.settings')}
-                  pauseAccessibilityLabel={
-                    paused
-                      ? translate('accessibility.resume')
-                      : translate('accessibility.pause')
-                  }
-                />
-
                 <View
                   style={[
-                    styles.boardSection,
-                    {
-                      width: boardOuterWidth,
-                      height: boardOuterHeight,
-                      marginBottom: isWideLayout ? 0 : boardBottomInset,
-                    },
+                    styles.playStack,
+                    { width: standardPlayWidth },
+                    isWideLayout && styles.playStackWide,
                   ]}
                 >
+                  <PlayStatusHeader
+                    avatarId={settings.playerAvatarId}
+                    careerMode={showCareerBar}
+                    difficultyLabel={
+                      showCareerBar ? difficultyBadgeLabel : undefined
+                    }
+                    career={careerBar ?? undefined}
+                    score={state.score}
+                    highScore={showCareerBar ? undefined : scoreRecord.highScore}
+                    isPersonalBest={!showCareerBar && runSetRecord}
+                    scoreLabel={translate('profile.score')}
+                    highScoreLabel={translate('profile.highScore')}
+                    newBestLabel={translate('profile.newBest')}
+                    stats={hudStats}
+                    nextPiece={state.next}
+                    onOpenSettings={handleOpenSettings}
+                    onPauseToggle={handlePauseToggle}
+                    pauseDisabled={pauseDisabled}
+                    paused={paused}
+                    pauseDimmed={state.gameOver}
+                    settingsAccessibilityLabel={translate('accessibility.settings')}
+                    pauseAccessibilityLabel={
+                      paused
+                        ? translate('accessibility.resume')
+                        : translate('accessibility.pause')
+                    }
+                  />
+
                   <View
                     style={[
-                      styles.gameClusterWrap,
-                      { width: boardOuterWidth, height: boardOuterHeight },
+                      styles.boardSection,
+                      styles.boardSectionStandard,
+                      {
+                        width: standardPlayWidth,
+                        height: boardOuterHeight,
+                        marginBottom: isWideLayout ? 0 : boardBottomInset,
+                      },
                     ]}
                   >
                     <View
                       style={[
-                        styles.boardColumn,
-                        { width: boardOuterWidth, height: boardOuterHeight },
+                        styles.gameClusterWrap,
+                        {
+                          width: standardPlayWidth,
+                          height: boardOuterHeight,
+                        },
                       ]}
                     >
-                      <SwipeZone
-                        onAction={handleAction}
-                        onDas={handleDas}
-                        onSoftDropHold={handleSoftDropHold}
-                        disabled={inputDisabled}
+                      <View
+                        style={[
+                          styles.boardColumn,
+                          {
+                            width: boardOuterWidth,
+                            height: boardOuterHeight,
+                          },
+                        ]}
                       >
-                        <BoardView
-                          board={displayBoard}
-                          cellSize={cellSize}
-                          active={state.active}
-                          ghost={ghostPiece}
-                          lineClear={state.lineClear}
-                          stageCleared={state.stageCleared}
-                          lockPulseKey={lockPulseKey}
-                        />
-                      </SwipeZone>
+                        <SwipeZone
+                          onAction={handleAction}
+                          onDas={handleDas}
+                          onSoftDropHold={handleSoftDropHold}
+                          disabled={inputDisabled}
+                        >
+                          <BoardView
+                            board={displayBoard}
+                            cellSize={cellSize}
+                            active={state.active}
+                            ghost={ghostPiece}
+                            lineClear={state.lineClear}
+                            stageCleared={state.stageCleared}
+                            lockPulseKey={lockPulseKey}
+                          />
+                        </SwipeZone>
+                      </View>
+                      {playOverlays}
                     </View>
-
-                    {paused && !modalBlocking ? (
-                      <GameOverlay
-                        variant="pause"
-                        onPrimary={handleResume}
-                        onSecondary={
-                          state.mode === 'bonus' ? undefined : handleRetryStage
-                        }
-                      />
-                    ) : null}
-                    {state.stageCleared &&
-                    state.mode === 'campaign' &&
-                    !showPromotionOverlay &&
-                    !showChairmanSaveOverlay &&
-                    !pendingBonus &&
-                    bonusPhase === 'none' ? (
-                      <GameOverlay
-                        variant="stageClear"
-                        level={state.level}
-                        stage={state.stage}
-                        careerHint={stageClearCareerHint}
-                        onPrimary={handleNextStage}
-                      />
-                    ) : null}
-                    {state.campaignComplete ? (
-                      <GameOverlay
-                        variant="campaignComplete"
-                        score={state.score}
-                        highScore={scoreRecord.highScore}
-                        isNewHighScore={runSetRecord}
-                        onPrimary={handleRestartCampaign}
-                      />
-                    ) : null}
-                    {state.gameOver ? (
-                      <GameOverlay
-                        variant="gameOver"
-                        score={state.score}
-                        highScore={scoreRecord.highScore}
-                        isNewHighScore={runSetRecord}
-                        primaryDisabled={!gameOverRestartReady}
-                        onPrimary={handleGameOverRestart}
-                      />
-                    ) : null}
-                    <BonusGameOverlay
-                      visible={bonusPhase === 'intro' || bonusPhase === 'result'}
-                      phase={bonusPhase === 'result' ? 'result' : 'intro'}
-                      lineTarget={bonusLineTargetDisplay}
-                      earnedScore={state.bonus?.earnedScore}
-                      success={state.bonus?.success}
-                      onPrimary={
-                        bonusPhase === 'result'
-                          ? handleBonusContinue
-                          : handleBonusStart
-                      }
-                    />
-                    <PromotionOverlay
-                      visible={showPromotionOverlay}
-                      title={promotionTitle}
-                      subtitle={promotionSubtitle}
-                      isCeo={isCeoPromotion}
-                      isChairman={isChairmanPromotion}
-                      playerAvatarId={settings.playerAvatarId}
-                      onComplete={handlePromotionComplete}
-                    />
                   </View>
                 </View>
               </View>
-
-              {!isWideLayout ? <View style={styles.playAreaSpacer} /> : null}
-            </View>
+            )}
           </View>
         </View>
       </View>
@@ -1047,6 +1251,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.panel,
+    borderColor: theme.panelBorder,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  iconLabel: {
+    color: theme.accent,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pauseLabel: {
+    color: theme.accent,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  pauseLabelDisabled: {
+    opacity: 0.35,
+  },
   content: {
     flex: 1,
     paddingHorizontal: HORIZONTAL_PADDING,
@@ -1058,12 +1292,29 @@ const styles = StyleSheet.create({
     minHeight: 0,
     backgroundColor: theme.background,
   },
+  playSection: {
+    flex: 1,
+    minHeight: 0,
+    paddingBottom: BOTTOM_LIFT,
+    backgroundColor: theme.background,
+  },
+  centerColumn: {
+    alignItems: 'flex-start',
+  },
+  gameCluster: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: PLAY_GAP,
+  },
   playArea: {
     flex: 1,
     minHeight: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
     width: '100%',
+  },
+  playAreaStandard: {
+    justifyContent: 'flex-start',
   },
   playAreaWide: {
     alignItems: 'flex-end',
@@ -1079,6 +1330,7 @@ const styles = StyleSheet.create({
     borderColor: theme.panelBorder,
     backgroundColor: theme.panel,
     overflow: 'hidden',
+    maxWidth: '100%',
   },
   playStackWide: {
     alignSelf: 'center',
@@ -1092,5 +1344,8 @@ const styles = StyleSheet.create({
   },
   boardSection: {
     backgroundColor: theme.boardBackground,
+  },
+  boardSectionStandard: {
+    alignItems: 'flex-start',
   },
 });
