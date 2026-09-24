@@ -72,7 +72,7 @@ const TITLE_ROW_HEIGHT = 40;
 const CASUAL_HEADER_CHROME_ESTIMATE = 120;
 const PLAY_STATUS_HEADER_HEIGHT = 118;
 /** Extra gap below system status bar on phones (standard/pro merged HUD). */
-const PHONE_STANDARD_TOP_GAP = 12;
+const PHONE_STANDARD_TOP_GAP = 48;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
 
