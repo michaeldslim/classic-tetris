@@ -70,7 +70,13 @@ function StatChip({
   emphasizeValue?: boolean;
 }) {
   return (
-    <View style={[styles.statChip, emphasizeValue && styles.statChipEmphasis]}>
+    <View
+      style={[
+        styles.statChip,
+        styles.statChipFlex,
+        emphasizeValue && styles.statChipEmphasis,
+      ]}
+    >
       <Text style={styles.statLabel} numberOfLines={1}>
         {label}
       </Text>
@@ -78,6 +84,7 @@ function StatChip({
         style={[styles.statValue, emphasizeValue && styles.statValueEmphasis]}
         numberOfLines={1}
         adjustsFontSizeToFit
+        minimumFontScale={0.65}
       >
         {value}
       </Text>
@@ -152,77 +159,15 @@ function PlayStatusHeaderComponent({
                   {highScoreLabel}: {highScore.toLocaleString()}
                 </Text>
               ) : null}
+              <View style={styles.stageMetaRow}>
+                <Text style={styles.stageMetaText} numberOfLines={1}>
+                  {translate('hud.stage')} {stats.stage} · {translate('hud.level')}{' '}
+                  {stats.level}
+                </Text>
+                <SpeedDots tier={gravityTier} />
+              </View>
             </>
           )}
-
-          <View style={styles.chipBand}>
-            <Pressable
-              style={styles.controlButton}
-              onPress={onOpenSettings}
-              accessibilityRole="button"
-              accessibilityLabel={settingsAccessibilityLabel}
-            >
-              <Text style={styles.controlIcon}>⚙</Text>
-            </Pressable>
-
-            <View style={styles.chipRow}>
-              {isBonus ? (
-                <>
-                  <StatChip
-                    label={translate('hud.timer')}
-                    value={stats.bonusTimerSec ?? 0}
-                  />
-                  <StatChip
-                    label={translate('hud.multiplier', {
-                      multiplier: String(stats.bonusMultiplier ?? 2),
-                    })}
-                    value={`×${stats.bonusMultiplier ?? 2}`}
-                  />
-                </>
-              ) : (
-                <>
-                  {careerMode ? (
-                    <StatChip
-                      label={translate('hud.score')}
-                      value={stats.score}
-                      emphasizeValue
-                    />
-                  ) : (
-                    <>
-                      <StatChip
-                        label={translate('hud.stage')}
-                        value={stats.stage}
-                        footer={<SpeedDots tier={gravityTier} />}
-                      />
-                      <StatChip label={translate('hud.level')} value={stats.level} />
-                    </>
-                  )}
-                  <StatChip
-                    label={translate('hud.line')}
-                    value={`${stats.lines}/${stats.lineTarget}`}
-                    footer={
-                      !isBonus && careerMode ? <SpeedDots tier={gravityTier} /> : null
-                    }
-                    emphasizeValue
-                  />
-                </>
-              )}
-            </View>
-
-            <Pressable
-              style={styles.controlButton}
-              onPress={onPauseToggle}
-              disabled={pauseDisabled}
-              accessibilityRole="button"
-              accessibilityLabel={pauseAccessibilityLabel}
-            >
-              <Text
-                style={[styles.controlPause, pauseDimmed && styles.controlPauseDimmed]}
-              >
-                {paused ? '▶' : '❚❚'}
-              </Text>
-            </Pressable>
-          </View>
         </View>
 
         <View style={styles.nextColumn}>
@@ -232,6 +177,64 @@ function PlayStatusHeaderComponent({
             cellSize={NEXT_CELL_SIZE}
           />
         </View>
+      </View>
+
+      <View style={styles.chipBand}>
+        <Pressable
+          style={styles.controlButton}
+          onPress={onOpenSettings}
+          accessibilityRole="button"
+          accessibilityLabel={settingsAccessibilityLabel}
+        >
+          <Text style={styles.controlIcon}>⚙</Text>
+        </Pressable>
+
+        <View style={styles.chipRow}>
+          {isBonus ? (
+            <>
+              <StatChip
+                label={translate('hud.timer')}
+                value={stats.bonusTimerSec ?? 0}
+                emphasizeValue
+              />
+              <StatChip
+                label={translate('hud.multiplier', {
+                  multiplier: String(stats.bonusMultiplier ?? 2),
+                })}
+                value={`×${stats.bonusMultiplier ?? 2}`}
+                emphasizeValue
+              />
+            </>
+          ) : (
+            <>
+              <StatChip
+                label={translate('hud.score')}
+                value={stats.score}
+                emphasizeValue
+              />
+              <StatChip
+                label={translate('hud.line')}
+                value={`${stats.lines}/${stats.lineTarget}`}
+                footer={careerMode ? <SpeedDots tier={gravityTier} /> : null}
+                emphasizeValue
+              />
+            </>
+          )}
+        </View>
+
+        <Pressable
+          style={styles.controlButton}
+          onPress={onPauseToggle}
+          disabled={pauseDisabled}
+          accessibilityRole="button"
+          accessibilityLabel={pauseAccessibilityLabel}
+        >
+          <Text
+            style={[styles.controlPause, pauseDimmed && styles.controlPauseDimmed]}
+          >
+            {paused ? '▶' : '❚❚'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -337,23 +340,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
+  stageMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  stageMetaText: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    flexShrink: 1,
+  },
   chipBand: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 4,
+    marginTop: 8,
   },
   chipRow: {
     flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 6,
+    flexWrap: 'nowrap',
+    alignItems: 'stretch',
+    gap: 4,
     minWidth: 0,
   },
   controlButton: {
     width: 32,
     height: 32,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.background,
@@ -375,14 +392,17 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   statChip: {
-    minWidth: 52,
     backgroundColor: theme.background,
     borderColor: theme.panelBorder,
     borderWidth: 1,
     borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
     alignItems: 'center',
+  },
+  statChipFlex: {
+    flex: 1,
+    minWidth: 0,
   },
   statLabel: {
     color: theme.textMuted,
@@ -397,11 +417,10 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   statChipEmphasis: {
-    minWidth: 58,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   statValueEmphasis: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '800',
   },
   speedDots: {
