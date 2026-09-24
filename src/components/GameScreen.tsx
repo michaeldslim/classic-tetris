@@ -304,9 +304,6 @@ export function GameScreen({
   const boardOuterHeight = playfieldRows * cellSize + BOARD_BORDER;
   const boardColumnWidth = boardOuterWidth;
   const gameClusterWidth = boardOuterWidth + PLAY_GAP + HUD_WIDTH;
-  const standardPlayWidth =
-    playBlockLayout.width > 0 ? playBlockLayout.width : contentWidth;
-
   const displayBoard = state.board;
 
   const ghostPiece = useMemo(
@@ -1129,14 +1126,14 @@ export function GameScreen({
               <View
                 style={[
                   styles.playArea,
-                  isWideLayout ? styles.playAreaWide : styles.playAreaStandard,
+                  isWideLayout ? styles.playAreaWide : styles.playAreaCentered,
                 ]}
               >
                 <View
                   style={[
                     styles.playStack,
-                    { width: standardPlayWidth },
-                    isWideLayout && styles.playStackWide,
+                    { width: boardOuterWidth },
+                    isWideLayout ? styles.playStackWide : styles.playStackCentered,
                   ]}
                 >
                   <PlayStatusHeader
@@ -1170,9 +1167,8 @@ export function GameScreen({
                   <View
                     style={[
                       styles.boardSection,
-                      styles.boardSectionStandard,
                       {
-                        width: standardPlayWidth,
+                        width: boardOuterWidth,
                         height: boardOuterHeight,
                         marginBottom: isWideLayout ? 0 : boardBottomInset,
                       },
@@ -1182,7 +1178,7 @@ export function GameScreen({
                       style={[
                         styles.gameClusterWrap,
                         {
-                          width: standardPlayWidth,
+                          width: boardOuterWidth,
                           height: boardOuterHeight,
                         },
                       ]}
@@ -1313,8 +1309,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     width: '100%',
   },
-  playAreaStandard: {
-    justifyContent: 'flex-start',
+  playAreaCentered: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   playAreaWide: {
     alignItems: 'flex-end',
@@ -1336,6 +1333,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: BOTTOM_LIFT,
   },
+  playStackCentered: {
+    alignSelf: 'center',
+  },
   gameClusterWrap: {
     position: 'relative',
   },
@@ -1344,8 +1344,5 @@ const styles = StyleSheet.create({
   },
   boardSection: {
     backgroundColor: theme.boardBackground,
-  },
-  boardSectionStandard: {
-    alignItems: 'flex-start',
   },
 });

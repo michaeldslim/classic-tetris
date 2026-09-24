@@ -46,8 +46,10 @@ export function useScreenLayout() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   return useMemo(() => {
+    const tablet = isTabletDevice(screenWidth, screenHeight);
     const wideLayout = isTabletWideLayout(screenWidth, screenHeight);
     return {
+      isTablet: tablet,
       isWideLayout: wideLayout,
       sidePanelWidth: wideLayout ? getLandscapeSidePanelWidth(screenWidth) : 0,
     };
