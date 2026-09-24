@@ -56,7 +56,6 @@ const HORIZONTAL_PADDING = 12;
 const BOARD_BORDER = BOARD_FRAME_SIZE;
 const BOTTOM_LIFT = 24;
 
-const TITLE_ROW_HEIGHT = 40;
 const PLAY_STATUS_HEADER_HEIGHT = 108;
 const MIN_PLAY_SECTION_HEIGHT = 200;
 const GAME_OVER_RESTART_DELAY_MS = 4000;
@@ -184,12 +183,13 @@ export function GameScreen({
     const chromeHeight =
       insets.top +
       insets.bottom +
-      TITLE_ROW_HEIGHT +
       PLAY_STATUS_HEADER_HEIGHT +
       BOTTOM_LIFT +
-      24;
+      16;
     return Math.max(windowHeight - chromeHeight, 320);
   }, [insets.top, insets.bottom, windowHeight]);
+
+  const boardBottomInset = isWideLayout ? BOTTOM_LIFT : BOTTOM_LIFT + insets.bottom;
 
   const contentWidth = windowWidth - HORIZONTAL_PADDING * 2;
 
@@ -204,7 +204,7 @@ export function GameScreen({
     const boardHeight =
       blockHeight -
       PLAY_STATUS_HEADER_HEIGHT -
-      BOTTOM_LIFT -
+      boardBottomInset -
       BOARD_BORDER;
     return computeCellSize(boardWidth, Math.max(boardHeight, 120));
   }, [
@@ -212,6 +212,7 @@ export function GameScreen({
     playBlockLayout.height,
     contentWidth,
     fallbackPlayHeight,
+    boardBottomInset,
   ]);
 
   const boardOuterWidth = BOARD_WIDTH * cellSize + BOARD_BORDER;
@@ -843,45 +844,15 @@ export function GameScreen({
         ? translate('settings.difficultyStandard')
         : translate('settings.difficultyPro');
 
+  const pauseDisabled =
+    state.gameOver ||
+    (state.stageCleared && state.mode === 'campaign') ||
+    state.campaignComplete ||
+    bonusPhase !== 'none';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
-        <View style={styles.titleRow}>
-          <Pressable
-            style={styles.iconButton}
-            onPress={handleOpenSettings}
-            accessibilityRole="button"
-            accessibilityLabel={translate('accessibility.settings')}
-          >
-            <Text style={styles.iconLabel}>⚙</Text>
-          </Pressable>
-          <Pressable
-            style={styles.iconButton}
-            onPress={handlePauseToggle}
-            disabled={
-              state.gameOver ||
-              (state.stageCleared && state.mode === 'campaign') ||
-              state.campaignComplete ||
-              bonusPhase !== 'none'
-            }
-            accessibilityRole="button"
-            accessibilityLabel={
-              paused
-                ? translate('accessibility.resume')
-                : translate('accessibility.pause')
-            }
-          >
-            <Text
-              style={[
-                styles.pauseLabel,
-                state.gameOver && styles.pauseLabelDisabled,
-              ]}
-            >
-              {paused ? '▶' : '❚❚'}
-            </Text>
-          </Pressable>
-        </View>
-
         <View style={styles.content}>
           <View style={styles.playBlock} onLayout={handlePlayBlockLayout}>
             <View
@@ -922,13 +893,27 @@ export function GameScreen({
                     bonusMultiplier: BONUS_SCORE_MULTIPLIER,
                   }}
                   nextPiece={state.next}
+                  onOpenSettings={handleOpenSettings}
+                  onPauseToggle={handlePauseToggle}
+                  pauseDisabled={pauseDisabled}
+                  paused={paused}
+                  pauseDimmed={state.gameOver}
+                  settingsAccessibilityLabel={translate('accessibility.settings')}
+                  pauseAccessibilityLabel={
+                    paused
+                      ? translate('accessibility.resume')
+                      : translate('accessibility.pause')
+                  }
                 />
 
                 <View
                   style={[
                     styles.boardSection,
-                    { width: boardOuterWidth, height: boardOuterHeight },
-                    isWideLayout && styles.boardSectionWide,
+                    {
+                      width: boardOuterWidth,
+                      height: boardOuterHeight,
+                      marginBottom: isWideLayout ? 0 : boardBottomInset,
+                    },
                   ]}
                 >
                   <View
@@ -1062,37 +1047,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: HORIZONTAL_PADDING,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.panel,
-    borderColor: theme.panelBorder,
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  iconLabel: {
-    color: theme.accent,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  pauseLabel: {
-    color: theme.accent,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  pauseLabelDisabled: {
-    opacity: 0.35,
-  },
   content: {
     flex: 1,
     paddingHorizontal: HORIZONTAL_PADDING,
@@ -1108,7 +1062,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     width: '100%',
   },
   playAreaWide: {
@@ -1138,9 +1092,5 @@ const styles = StyleSheet.create({
   },
   boardSection: {
     backgroundColor: theme.boardBackground,
-    marginBottom: BOTTOM_LIFT,
-  },
-  boardSectionWide: {
-    marginBottom: 0,
   },
 });

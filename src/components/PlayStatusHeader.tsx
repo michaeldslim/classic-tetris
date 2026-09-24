@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AvatarId } from '../constants/avatars';
 import { getGravityTier } from '../game/campaign';
 import type { GameStats } from '../game/types';
@@ -32,6 +32,13 @@ type PlayStatusHeaderProps = {
   newBestLabel: string;
   stats: GameStats;
   nextPiece: TetrominoType | null;
+  onOpenSettings: () => void;
+  onPauseToggle: () => void;
+  pauseDisabled?: boolean;
+  paused?: boolean;
+  pauseDimmed?: boolean;
+  settingsAccessibilityLabel: string;
+  pauseAccessibilityLabel: string;
 };
 
 function SpeedDots({ tier }: { tier: number }) {
@@ -92,6 +99,13 @@ function PlayStatusHeaderComponent({
   newBestLabel,
   stats,
   nextPiece,
+  onOpenSettings,
+  onPauseToggle,
+  pauseDisabled = false,
+  paused = false,
+  pauseDimmed = false,
+  settingsAccessibilityLabel,
+  pauseAccessibilityLabel,
 }: PlayStatusHeaderProps) {
   const { translate } = useSettings();
   const gravityTier = stats.gravityTier ?? getGravityTier(stats.stage);
@@ -141,46 +155,73 @@ function PlayStatusHeaderComponent({
             </>
           )}
 
-          <View style={styles.chipRow}>
-            {isBonus ? (
-              <>
-                <StatChip
-                  label={translate('hud.timer')}
-                  value={stats.bonusTimerSec ?? 0}
-                />
-                <StatChip
-                  label={translate('hud.multiplier', {
-                    multiplier: String(stats.bonusMultiplier ?? 2),
-                  })}
-                  value={`×${stats.bonusMultiplier ?? 2}`}
-                />
-              </>
-            ) : (
-              <>
-                {careerMode ? (
+          <View style={styles.chipBand}>
+            <Pressable
+              style={styles.controlButton}
+              onPress={onOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel={settingsAccessibilityLabel}
+            >
+              <Text style={styles.controlIcon}>⚙</Text>
+            </Pressable>
+
+            <View style={styles.chipRow}>
+              {isBonus ? (
+                <>
                   <StatChip
-                    label={translate('hud.score')}
-                    value={stats.score}
+                    label={translate('hud.timer')}
+                    value={stats.bonusTimerSec ?? 0}
+                  />
+                  <StatChip
+                    label={translate('hud.multiplier', {
+                      multiplier: String(stats.bonusMultiplier ?? 2),
+                    })}
+                    value={`×${stats.bonusMultiplier ?? 2}`}
+                  />
+                </>
+              ) : (
+                <>
+                  {careerMode ? (
+                    <StatChip
+                      label={translate('hud.score')}
+                      value={stats.score}
+                      emphasizeValue
+                    />
+                  ) : (
+                    <>
+                      <StatChip
+                        label={translate('hud.stage')}
+                        value={stats.stage}
+                        footer={<SpeedDots tier={gravityTier} />}
+                      />
+                      <StatChip label={translate('hud.level')} value={stats.level} />
+                    </>
+                  )}
+                  <StatChip
+                    label={translate('hud.line')}
+                    value={`${stats.lines}/${stats.lineTarget}`}
+                    footer={
+                      !isBonus && careerMode ? <SpeedDots tier={gravityTier} /> : null
+                    }
                     emphasizeValue
                   />
-                ) : (
-                  <>
-                    <StatChip
-                      label={translate('hud.stage')}
-                      value={stats.stage}
-                      footer={<SpeedDots tier={gravityTier} />}
-                    />
-                    <StatChip label={translate('hud.level')} value={stats.level} />
-                  </>
-                )}
-                <StatChip
-                  label={translate('hud.line')}
-                  value={`${stats.lines}/${stats.lineTarget}`}
-                  footer={!isBonus && careerMode ? <SpeedDots tier={gravityTier} /> : null}
-                  emphasizeValue
-                />
-              </>
-            )}
+                </>
+              )}
+            </View>
+
+            <Pressable
+              style={styles.controlButton}
+              onPress={onPauseToggle}
+              disabled={pauseDisabled}
+              accessibilityRole="button"
+              accessibilityLabel={pauseAccessibilityLabel}
+            >
+              <Text
+                style={[styles.controlPause, pauseDimmed && styles.controlPauseDimmed]}
+              >
+                {paused ? '▶' : '❚❚'}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
@@ -296,11 +337,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
+  chipBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
   chipRow: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 6,
-    marginTop: 4,
+    minWidth: 0,
+  },
+  controlButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.background,
+    borderColor: theme.panelBorder,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  controlIcon: {
+    color: theme.accent,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  controlPause: {
+    color: theme.accent,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  controlPauseDimmed: {
+    opacity: 0.35,
   },
   statChip: {
     minWidth: 52,
