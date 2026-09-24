@@ -8,7 +8,7 @@ import {
 import { BOARD_HEIGHT, BOARD_WIDTH } from '../src/game/types';
 
 describe('board', () => {
-  it('creates an empty 10x16 grid', () => {
+  it('creates an empty 10x18 grid', () => {
     const board = createEmptyBoard();
     expect(board).toHaveLength(BOARD_HEIGHT);
     expect(board[0]).toHaveLength(BOARD_WIDTH);

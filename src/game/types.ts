@@ -109,7 +109,7 @@ export type GameStats = {
 };
 
 export const BOARD_WIDTH = 10;
-export const BOARD_HEIGHT = 16;
+export const BOARD_HEIGHT = 18;
 export const MINI_BOARD_SIZE = 4;
 
 export function computeCellSize(

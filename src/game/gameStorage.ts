@@ -8,7 +8,7 @@ import type { ActivePiece, GameMode, GameState, LineClearEffect } from './types'
 import { BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PLAY_TIMING } from './types';
 
 const SESSION_KEY = '@classic-tetris/session';
-const SESSION_VERSION = 2;
+const SESSION_VERSION = 3;
 
 export type BonusPhaseSnapshot = 'none' | 'intro' | 'result';
 

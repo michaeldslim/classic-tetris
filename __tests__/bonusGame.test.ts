@@ -1,4 +1,6 @@
+import { createEmptyBoard } from '../src/game/board';
 import { createInitialState, reduce, tick } from '../src/game/engine';
+import { BOARD_HEIGHT, BOARD_WIDTH } from '../src/game/types';
 import { getLineClearDuration } from '../src/game/lineClearFx';
 import {
   BONUS_DURATION_MS,
@@ -126,8 +128,9 @@ describe('bonusGame', () => {
 
   it('completes bonus when line target is reached via engine tick flow', () => {
     let state = createInitialState();
-    const board = Array.from({ length: 16 }, () => Array(8).fill(null));
-    board[15] = Array(8).fill('I');
+    const board = createEmptyBoard();
+    const bottomRow = BOARD_HEIGHT - 1;
+    board[bottomRow] = Array.from({ length: BOARD_WIDTH }, () => 'I' as const);
 
     state = {
       ...state,
@@ -143,7 +146,7 @@ describe('bonusGame', () => {
         success: false,
       },
       active: null,
-      lineClear: { rows: [15], elapsed: 0 },
+      lineClear: { rows: [bottomRow], elapsed: 0 },
       board,
     };
 
