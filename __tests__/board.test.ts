@@ -8,7 +8,7 @@ import {
 import { BOARD_HEIGHT, BOARD_WIDTH } from '../src/game/types';
 
 describe('board', () => {
-  it('creates an empty 8x16 grid', () => {
+  it('creates an empty 10x16 grid', () => {
     const board = createEmptyBoard();
     expect(board).toHaveLength(BOARD_HEIGHT);
     expect(board[0]).toHaveLength(BOARD_WIDTH);
@@ -32,20 +32,20 @@ describe('board', () => {
   });
 
   it('rejects out-of-bounds horizontal placement for O', () => {
-    expect(isValidPosition(createEmptyBoard(), 'O', 0, 6, 10)).toBe(false);
-    expect(isValidPosition(createEmptyBoard(), 'O', 0, 5, 10)).toBe(true);
+    expect(isValidPosition(createEmptyBoard(), 'O', 0, 8, 10)).toBe(false);
+    expect(isValidPosition(createEmptyBoard(), 'O', 0, 7, 10)).toBe(true);
   });
 
   it('merges a full O piece on the right edge', () => {
     const board = createEmptyBoard();
-    const merged = mergePiece(board, 'O', 0, 5, 14);
+    const merged = mergePiece(board, 'O', 0, 7, 13);
     const filled = merged.flat().filter((cell) => cell === 'O');
 
     expect(filled).toHaveLength(4);
-    expect(merged[14]![6]).toBe('O');
-    expect(merged[14]![7]).toBe('O');
-    expect(merged[15]![6]).toBe('O');
-    expect(merged[15]![7]).toBe('O');
+    expect(merged[13]![8]).toBe('O');
+    expect(merged[13]![9]).toBe('O');
+    expect(merged[14]![8]).toBe('O');
+    expect(merged[14]![9]).toBe('O');
   });
 
   it('finds full line row indices', () => {

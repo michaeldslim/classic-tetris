@@ -8,7 +8,7 @@ import type { ActivePiece, GameMode, GameState, LineClearEffect } from './types'
 import { BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PLAY_TIMING } from './types';
 
 const SESSION_KEY = '@classic-tetris/session';
-const SESSION_VERSION = 1;
+const SESSION_VERSION = 2;
 
 export type BonusPhaseSnapshot = 'none' | 'intro' | 'result';
 
@@ -359,16 +359,28 @@ export async function loadGameSession(): Promise<GameSessionSnapshot | null> {
       return null;
     }
 
-    const parsed = parseSession(JSON.parse(raw));
-    if (!parsed || !isResumableSession(parsed)) {
-      if (parsed) {
-        await clearGameSession();
-      }
+    let data: unknown;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      await clearGameSession();
+      return null;
+    }
+
+    const parsed = parseSession(data);
+    if (!parsed) {
+      await clearGameSession();
+      return null;
+    }
+
+    if (!isResumableSession(parsed)) {
+      await clearGameSession();
       return null;
     }
 
     return parsed;
   } catch {
+    await clearGameSession();
     return null;
   }
 }

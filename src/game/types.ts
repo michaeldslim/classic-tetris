@@ -108,7 +108,7 @@ export type GameStats = {
   bonusMultiplier?: number;
 };
 
-export const BOARD_WIDTH = 8;
+export const BOARD_WIDTH = 10;
 export const BOARD_HEIGHT = 16;
 export const MINI_BOARD_SIZE = 4;
 

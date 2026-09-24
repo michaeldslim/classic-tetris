@@ -2,7 +2,7 @@ import { drawFromBag } from './bag';
 import { isValidPosition } from './board';
 import type { ActivePiece, GameState } from './types';
 
-const SPAWN_X = 2;
+const SPAWN_X = 3;
 const SPAWN_Y = 0;
 
 function resetDasState(state: GameState): Pick<
