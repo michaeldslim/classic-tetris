@@ -49,6 +49,7 @@ import { ChairmanSaveModal } from './ChairmanSaveModal';
 import { GameOverlay } from './GameOverlay';
 import { PlayStatusHeader } from './PlayStatusHeader';
 import { PromotionOverlay } from './PromotionOverlay';
+import { useScreenLayout } from '../hooks/useScreenLayout';
 import { SwipeZone } from './TouchControls';
 
 const HORIZONTAL_PADDING = 12;
@@ -102,6 +103,7 @@ export function GameScreen({
   const { saveChairmanEntry } = useLeaderboard();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { isWideLayout } = useScreenLayout();
   const [playBlockLayout, setPlayBlockLayout] = useState({ width: 0, height: 0 });
   const [paused, setPaused] = useState(false);
   const [lastAction, setLastAction] = useState<GameAction | null>(null);
@@ -882,10 +884,21 @@ export function GameScreen({
 
         <View style={styles.content}>
           <View style={styles.playBlock} onLayout={handlePlayBlockLayout}>
-            <View style={styles.playArea}>
-              <View style={styles.playAreaSpacer} />
+            <View
+              style={[
+                styles.playArea,
+                isWideLayout && styles.playAreaWide,
+              ]}
+            >
+              {!isWideLayout ? <View style={styles.playAreaSpacer} /> : null}
 
-              <View style={[styles.playStack, { width: playStackWidth }]}>
+              <View
+                style={[
+                  styles.playStack,
+                  { width: playStackWidth },
+                  isWideLayout && styles.playStackWide,
+                ]}
+              >
                 <PlayStatusHeader
                   avatarId={settings.playerAvatarId}
                   careerMode={showCareerBar}
@@ -915,6 +928,7 @@ export function GameScreen({
                   style={[
                     styles.boardSection,
                     { width: boardOuterWidth, height: boardOuterHeight },
+                    isWideLayout && styles.boardSectionWide,
                   ]}
                 >
                   <View
@@ -1014,7 +1028,7 @@ export function GameScreen({
                 </View>
               </View>
 
-              <View style={styles.playAreaSpacer} />
+              {!isWideLayout ? <View style={styles.playAreaSpacer} /> : null}
             </View>
           </View>
         </View>
@@ -1097,6 +1111,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  playAreaWide: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   playAreaSpacer: {
     flex: 1,
   },
@@ -1108,6 +1126,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.panel,
     overflow: 'hidden',
   },
+  playStackWide: {
+    alignSelf: 'center',
+    marginBottom: BOTTOM_LIFT,
+  },
   gameClusterWrap: {
     position: 'relative',
   },
@@ -1117,5 +1139,8 @@ const styles = StyleSheet.create({
   boardSection: {
     backgroundColor: theme.boardBackground,
     marginBottom: BOTTOM_LIFT,
+  },
+  boardSectionWide: {
+    marginBottom: 0,
   },
 });
