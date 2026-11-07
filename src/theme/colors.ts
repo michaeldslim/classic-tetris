@@ -1,3 +1,11 @@
+import type { TetrominoColorPair, TetrominoType } from './palettes';
+import {
+  DEFAULT_TETROMINO_PALETTE_ID,
+  getTetrominoPalette,
+} from './palettes';
+
+export type { TetrominoType } from './palettes';
+
 export const theme = {
   background: '#0f0f1a',
   panel: '#1a1a2e',
@@ -20,20 +28,13 @@ export const theme = {
 /** Total width/height added around the cell grid (both sides combined). */
 export const BOARD_FRAME_SIZE = 14;
 
-export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
+const defaultPalette = getTetrominoPalette(DEFAULT_TETROMINO_PALETTE_ID);
 
-export const tetrominoColors: Record<
-  TetrominoType,
-  { fill: string; border: string }
-> = {
-  I: { fill: '#00F0F0', border: '#00A0A0' },
-  O: { fill: '#F0F000', border: '#A0A000' },
-  T: { fill: '#A000F0', border: '#6000A0' },
-  S: { fill: '#00F000', border: '#00A000' },
-  Z: { fill: '#F00000', border: '#A00000' },
-  J: { fill: '#5088FF', border: '#2A58C8' },
-  L: { fill: '#F0A000', border: '#A06000' },
-};
+/** Default Guideline palette (tests / static imports). */
+export const tetrominoColors = defaultPalette.tetrominoColors;
+
+/** Default Guideline line-clear flash (tests / static imports). */
+export const lineClearFlashColors = defaultPalette.lineClearFlashColors;
 
 const GHOST_FILL_ALPHA = 0.25;
 const GHOST_BORDER_ALPHA = 0.55;
@@ -46,23 +47,20 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function getGhostColors(type: TetrominoType): {
+export function getGhostColors(piece: TetrominoColorPair): {
   fill: string;
   border: string;
 } {
-  const { fill, border } = tetrominoColors[type];
   return {
-    fill: hexToRgba(fill, GHOST_FILL_ALPHA),
-    border: hexToRgba(border, GHOST_BORDER_ALPHA),
+    fill: hexToRgba(piece.fill, GHOST_FILL_ALPHA),
+    border: hexToRgba(piece.border, GHOST_BORDER_ALPHA),
   };
 }
 
-export const lineClearFlashColors: Record<
-  1 | 2 | 3 | 4,
-  { bright: string; dim: string; border: string }
-> = {
-  1: { bright: '#ffffff', dim: '#b8c0d8', border: theme.accent },
-  2: { bright: '#00F0F0', dim: '#008888', border: '#00A0A0' },
-  3: { bright: '#A000F0', dim: '#600090', border: '#6000A0' },
-  4: { bright: '#f0f000', dim: '#a0a000', border: '#f0f000' },
-};
+export function getGhostColorsForType(
+  type: TetrominoType,
+  paletteId = DEFAULT_TETROMINO_PALETTE_ID,
+): { fill: string; border: string } {
+  const { tetrominoColors: colors } = getTetrominoPalette(paletteId);
+  return getGhostColors(colors[type]);
+}
