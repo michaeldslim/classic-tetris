@@ -10,7 +10,12 @@ import {
 import { setI18nLanguage, t } from '../i18n';
 import type { AvatarId } from '../constants/avatars';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './storage';
-import type { AppSettings, BgmTrack, GameDifficulty } from './types';
+import type {
+  AppSettings,
+  BgmTrack,
+  GameDifficulty,
+  TetrominoPaletteId,
+} from './types';
 import type { AppLanguage } from '../i18n';
 
 type SettingsContextValue = {
@@ -23,6 +28,7 @@ type SettingsContextValue = {
   setPlayerAvatarId: (avatarId: AvatarId) => void;
   setCareerModeEnabled: (enabled: boolean) => void;
   setGameDifficulty: (difficulty: GameDifficulty) => void;
+  setTetrominoPalette: (palette: TetrominoPaletteId) => void;
   translate: typeof t;
 };
 
@@ -111,6 +117,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setTetrominoPalette = useCallback(
+    (tetrominoPalette: TetrominoPaletteId) => {
+      setSettings((current) => {
+        const next = { ...current, tetrominoPalette };
+        void saveSettings(next);
+        return next;
+      });
+    },
+    [],
+  );
+
   const value = useMemo(
     () => ({
       settings,
@@ -122,6 +139,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setPlayerAvatarId,
       setCareerModeEnabled,
       setGameDifficulty,
+      setTetrominoPalette,
       translate: t,
     }),
     [
@@ -134,6 +152,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setPlayerAvatarId,
       setCareerModeEnabled,
       setGameDifficulty,
+      setTetrominoPalette,
     ],
   );
 

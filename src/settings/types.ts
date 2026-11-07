@@ -1,6 +1,10 @@
 import type { AvatarId } from '../constants/avatars';
 import { DEFAULT_PLAYER_AVATAR_ID } from '../constants/avatars';
 import type { AppLanguage } from '../i18n';
+import {
+  DEFAULT_TETROMINO_PALETTE_ID,
+  type TetrominoPaletteId,
+} from '../theme/palettes';
 
 export type BgmTrack = 'BGM1' | 'BGM2' | 'BGM3' | 'BGM4';
 
@@ -25,7 +29,11 @@ export type AppSettings = {
   careerModeEnabled: boolean;
   /** Play feel — independent of careerModeEnabled (Phase 9). */
   gameDifficulty: GameDifficulty;
+  tetrominoPalette: TetrominoPaletteId;
 };
+
+export type { TetrominoPaletteId };
+export { DEFAULT_TETROMINO_PALETTE_ID };
 
 export { DEFAULT_PLAYER_AVATAR_ID };
 

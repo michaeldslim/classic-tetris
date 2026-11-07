@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resolveAvatarId } from '../constants/avatars';
 import { detectDeviceLanguage } from '../i18n';
 import { isGameDifficulty } from '../difficulty/difficultyProfile';
+import { isTetrominoPaletteId } from '../theme/palettes';
 import type { AppSettings } from './types';
 import {
   DEFAULT_GAME_DIFFICULTY,
   DEFAULT_PLAYER_AVATAR_ID,
+  DEFAULT_TETROMINO_PALETTE_ID,
   isBgmTrack,
 } from './types';
 
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   playerAvatarId: DEFAULT_PLAYER_AVATAR_ID,
   careerModeEnabled: true,
   gameDifficulty: DEFAULT_GAME_DIFFICULTY,
+  tetrominoPalette: DEFAULT_TETROMINO_PALETTE_ID,
 };
 
 export async function loadSettings(): Promise<AppSettings> {
@@ -46,6 +49,15 @@ export async function loadSettings(): Promise<AppSettings> {
       gameDifficulty: isGameDifficulty(parsed.gameDifficulty)
         ? parsed.gameDifficulty
         : DEFAULT_SETTINGS.gameDifficulty,
+      tetrominoPalette: (() => {
+        const stored = parsed.tetrominoPalette;
+        if (stored === 'neon') {
+          return 'gray';
+        }
+        return isTetrominoPaletteId(stored)
+          ? stored
+          : DEFAULT_SETTINGS.tetrominoPalette;
+      })(),
     };
   } catch {
     return DEFAULT_SETTINGS;
