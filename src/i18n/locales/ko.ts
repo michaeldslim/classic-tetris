@@ -43,6 +43,22 @@ export const ko: TranslationSchema = {
     difficultyStandardDesc:
       '조금 더 빠른 플레이. 승진 경로와 조건은 동일합니다.',
     difficultyProDesc: '빠른 낙하와 높은 목표. 회장 도전용.',
+    tetrominoPaletteTitle: '블록 색상',
+    tetrominoPaletteGuideline: '1 · 오리지널',
+    tetrominoPaletteNes: '2 · NES',
+    tetrominoPaletteGameboy: '3 · 게임보이',
+    tetrominoPalettePastel: '4 · 파스텔',
+    tetrominoPaletteGray: '5 · 그레이',
+    tetrominoPaletteGuidelineDesc:
+      '기본 7색(표준 테트리스 색). 라인 클리어 플래시도 같은 팔레트입니다.',
+    tetrominoPaletteNesDesc:
+      '올리브·마젠타·숲녹 등 NES CRT 톤. 오리지널보다 채도·명도가 낮습니다.',
+    tetrominoPaletteGameboyDesc:
+      'DMG 녹색 계열. 라인 클리어 플래시도 같은 톤입니다.',
+    tetrominoPalettePastelDesc:
+      '오리지널을 부드럽게 낮춘 파스텔. 장시간 플레이에 적합합니다.',
+    tetrominoPaletteGrayDesc:
+      '피스마다 밝기 다른 무채색. 라인 클리어는 은회색 플래시입니다.',
   },
   language: {
     ko: '한국어',

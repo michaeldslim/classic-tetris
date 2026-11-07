@@ -7,7 +7,12 @@ import { SCORE_ACHIEVEMENTS, achievementKey } from '../score/achievements';
 import { useScore } from '../score/ScoreProvider';
 import { useSettings } from '../settings/SettingsContext';
 import { GAME_DIFFICULTIES } from '../difficulty/difficultyProfile';
-import { BGM_TRACKS, type GameDifficulty } from '../settings/types';
+import { TETROMINO_PALETTE_IDS } from '../theme/palettes';
+import {
+  BGM_TRACKS,
+  type GameDifficulty,
+  type TetrominoPaletteId,
+} from '../settings/types';
 import type { AppLanguage } from '../i18n';
 import { theme } from '../theme/colors';
 import { AvatarPicker } from './AvatarPicker';
@@ -38,6 +43,7 @@ function SettingsScreenComponent({
     setPlayerAvatarId,
     setCareerModeEnabled,
     setGameDifficulty,
+    setTetrominoPalette,
     translate,
   } = useSettings();
   const { careerState, loaded: careerLoaded, resetCareerProgress } = useCareer();
@@ -75,6 +81,41 @@ function SettingsScreenComponent({
     value: track,
     label: translate(`bgm.${track.toLowerCase()}`),
   }));
+
+  const tetrominoPaletteLabelKey: Record<
+    TetrominoPaletteId,
+    | 'settings.tetrominoPaletteGuideline'
+    | 'settings.tetrominoPaletteNes'
+    | 'settings.tetrominoPaletteGameboy'
+    | 'settings.tetrominoPalettePastel'
+    | 'settings.tetrominoPaletteGray'
+  > = {
+    guideline: 'settings.tetrominoPaletteGuideline',
+    nes: 'settings.tetrominoPaletteNes',
+    gameboy: 'settings.tetrominoPaletteGameboy',
+    pastel: 'settings.tetrominoPalettePastel',
+    gray: 'settings.tetrominoPaletteGray',
+  };
+
+  const tetrominoPaletteOptions = TETROMINO_PALETTE_IDS.map((value) => ({
+    value,
+    label: translate(tetrominoPaletteLabelKey[value]),
+  }));
+
+  const tetrominoPaletteDescriptionKey: Record<
+    TetrominoPaletteId,
+    | 'settings.tetrominoPaletteGuidelineDesc'
+    | 'settings.tetrominoPaletteNesDesc'
+    | 'settings.tetrominoPaletteGameboyDesc'
+    | 'settings.tetrominoPalettePastelDesc'
+    | 'settings.tetrominoPaletteGrayDesc'
+  > = {
+    guideline: 'settings.tetrominoPaletteGuidelineDesc',
+    nes: 'settings.tetrominoPaletteNesDesc',
+    gameboy: 'settings.tetrominoPaletteGameboyDesc',
+    pastel: 'settings.tetrominoPalettePastelDesc',
+    gray: 'settings.tetrominoPaletteGrayDesc',
+  };
 
   const difficultyOptions = GAME_DIFFICULTIES.map((value) => ({
     value,
@@ -151,6 +192,21 @@ function SettingsScreenComponent({
               gridExpanded={avatarGridExpanded}
               collapsedHint={translate('settings.playerAvatarCollapsedHint')}
             />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {translate('settings.tetrominoPaletteTitle')}
+            </Text>
+            <ChipSelector
+              options={tetrominoPaletteOptions}
+              value={settings.tetrominoPalette}
+              onChange={setTetrominoPalette}
+              accessibilityLabel={translate('settings.tetrominoPaletteTitle')}
+            />
+            <Text style={styles.careerRules}>
+              {translate(tetrominoPaletteDescriptionKey[settings.tetrominoPalette])}
+            </Text>
           </View>
 
           <View style={styles.section}>

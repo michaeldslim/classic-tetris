@@ -39,6 +39,17 @@ export type TranslationSchema = {
     difficultyCasualDesc: string;
     difficultyStandardDesc: string;
     difficultyProDesc: string;
+    tetrominoPaletteTitle: string;
+    tetrominoPaletteGuideline: string;
+    tetrominoPaletteNes: string;
+    tetrominoPaletteGameboy: string;
+    tetrominoPalettePastel: string;
+    tetrominoPaletteGray: string;
+    tetrominoPaletteGuidelineDesc: string;
+    tetrominoPaletteNesDesc: string;
+    tetrominoPaletteGameboyDesc: string;
+    tetrominoPalettePastelDesc: string;
+    tetrominoPaletteGrayDesc: string;
   };
   language: {
     ko: string;
@@ -262,6 +273,22 @@ export const en: TranslationSchema = {
       'A bit faster. Promotion route and requirements stay the same.',
     difficultyProDesc:
       'Fast gravity and higher targets. For chairman challenges.',
+    tetrominoPaletteTitle: 'Block colors',
+    tetrominoPaletteGuideline: '1 · Original',
+    tetrominoPaletteNes: '2 · NES',
+    tetrominoPaletteGameboy: '3 · Game Boy',
+    tetrominoPalettePastel: '4 · Pastel',
+    tetrominoPaletteGray: '5 · Grayscale',
+    tetrominoPaletteGuidelineDesc:
+      'Default seven colors (standard Tetris hues). Line-clear flashes match.',
+    tetrominoPaletteNesDesc:
+      'Olive gold, magenta T, forest green — dimmer NES CRT, unlike Original.',
+    tetrominoPaletteGameboyDesc:
+      'DMG green shades. Line-clear flashes use the same green family.',
+    tetrominoPalettePastelDesc:
+      'Softer take on the Original colors. Easier on the eyes in long sessions.',
+    tetrominoPaletteGrayDesc:
+      'Neutral gray steps per piece. Line clears pulse in silver tones.',
   },
   language: {
     ko: '한국어',
