@@ -1,8 +1,10 @@
 import { memo, useMemo, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { getRotatedShape } from '../game/board';
-import { tetrominoTypes, type TetrominoType } from '../game/tetrominoes';
-import { theme, tetrominoColors } from '../theme/colors';
+import { tetrominoTypes } from '../game/tetrominoes';
+import { theme, type TetrominoType } from '../theme/colors';
+import type { TetrominoColorMap } from '../theme/palettes';
+import { useTetrominoPalette } from '../theme/useTetrominoPalette';
 
 type LandscapeSideArtProps = {
   side: 'left' | 'right';
@@ -105,8 +107,9 @@ function MiniPiece({
   originTop,
   originLeft,
   opacity = 0.85,
-}: BlockSpec & { pieceKey: string }) {
-  const { fill, border } = tetrominoColors[type];
+  pieceColors,
+}: BlockSpec & { pieceKey: string; pieceColors: TetrominoColorMap }) {
+  const { fill, border } = pieceColors[type];
 
   return (
     <>
@@ -235,6 +238,7 @@ function LandscapeSideArtComponent({
   side,
   variant = 'full',
 }: LandscapeSideArtProps) {
+  const { tetrominoColors: pieceColors } = useTetrominoPalette();
   const pieces = side === 'left' ? LEFT_PIECES : RIGHT_PIECES;
   const minimal = variant === 'minimal';
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
@@ -269,6 +273,7 @@ function LandscapeSideArtComponent({
               <MiniPiece
                 key={`${side}-decor-${index}`}
                 pieceKey={`${side}-${index}`}
+                pieceColors={pieceColors}
                 {...piece}
               />
             ))}
@@ -295,6 +300,7 @@ function LandscapeSideArtComponent({
               <MiniPiece
                 key={`${side}-${index}`}
                 pieceKey={`${side}-full-${index}`}
+                pieceColors={pieceColors}
                 {...piece}
               />
             ))}

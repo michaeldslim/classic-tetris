@@ -1,18 +1,14 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { TetrominoType } from '../theme/colors';
-import {
-  getGhostColors,
-  hexToRgba,
-  lineClearFlashColors,
-  theme,
-  tetrominoColors,
-} from '../theme/colors';
+import { getGhostColors, hexToRgba, theme } from '../theme/colors';
+import { getTetrominoPalette, type TetrominoPaletteId } from '../theme/palettes';
 import type { LineClearTier } from '../game/lineClearFx';
 
 type CellProps = {
   type: TetrominoType | null;
   size: number;
+  paletteId: TetrominoPaletteId;
   ghost?: boolean;
   flashing?: boolean;
   flashBright?: boolean;
@@ -28,6 +24,7 @@ function bevelInset(size: number): number {
 function CellComponent({
   type,
   size,
+  paletteId,
   ghost = false,
   flashing = false,
   flashBright = false,
@@ -35,9 +32,13 @@ function CellComponent({
   showGrid = true,
   checkerLight = false,
 }: CellProps) {
-  const colors = type ? tetrominoColors[type] : null;
+  const palette = useMemo(
+    () => getTetrominoPalette(paletteId),
+    [paletteId],
+  );
+  const colors = type ? palette.tetrominoColors[type] : null;
   const inset = bevelInset(size);
-  const ghostColors = type && ghost ? getGhostColors(type) : null;
+  const ghostColors = type && ghost && colors ? getGhostColors(colors) : null;
 
   const bevelColors = useMemo(() => {
     if (!colors || ghost || flashing) {
@@ -75,7 +76,7 @@ function CellComponent({
 
   if (flashing) {
     const tier = lineClearTier ?? 1;
-    const flash = lineClearFlashColors[tier];
+    const flash = palette.lineClearFlashColors[tier];
     return (
       <View
         style={[
@@ -157,6 +158,7 @@ function CellComponent({
 export const Cell = memo(CellComponent, (prev, next) =>
   prev.type === next.type &&
   prev.size === next.size &&
+  prev.paletteId === next.paletteId &&
   prev.ghost === next.ghost &&
   prev.flashing === next.flashing &&
   prev.flashBright === next.flashBright &&

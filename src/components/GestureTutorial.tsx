@@ -4,6 +4,7 @@ import { getRotatedShape } from '../game/board';
 import type { TetrominoType } from '../theme/colors';
 import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
+import { useTetrominoPalette } from '../theme/useTetrominoPalette';
 import { Cell } from './Cell';
 
 type GestureTutorialProps = {
@@ -20,6 +21,7 @@ type MiniPieceProps = {
 };
 
 function MiniPiece({ rotation = 0, style }: MiniPieceProps) {
+  const { id: paletteId } = useTetrominoPalette();
   const grid = useMemo(
     () => getRotatedShape(DEMO_PIECE, rotation),
     [rotation],
@@ -34,6 +36,7 @@ function MiniPiece({ rotation = 0, style }: MiniPieceProps) {
               key={`piece-${x}-${y}`}
               type={filled ? DEMO_PIECE : null}
               size={CELL_SIZE}
+              paletteId={paletteId}
               showGrid={false}
             />
           ))}

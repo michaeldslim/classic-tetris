@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { TetrominoType } from '../theme/colors';
 import { theme } from '../theme/colors';
+import { useTetrominoPalette } from '../theme/useTetrominoPalette';
 import { tetrominoShapes } from '../game/tetrominoes';
 import { MINI_BOARD_SIZE, type BoardCell } from '../game/types';
 import { Cell } from './Cell';
@@ -67,6 +68,7 @@ function MiniBoardComponent({
   piece,
   cellSize = 14,
 }: MiniBoardProps) {
+  const { id: paletteId } = useTetrominoPalette();
   const grid = useMemo(
     () => buildCenteredGrid(piece, MINI_BOARD_SIZE),
     [piece],
@@ -79,7 +81,13 @@ function MiniBoardComponent({
         {grid.map((row, y) => (
           <View key={`mini-row-${y}`} style={styles.row}>
             {row.map((cell, x) => (
-              <Cell key={`mini-${x}-${y}`} type={cell} size={cellSize} showGrid={false} />
+              <Cell
+                key={`mini-${x}-${y}`}
+                type={cell}
+                size={cellSize}
+                paletteId={paletteId}
+                showGrid={false}
+              />
             ))}
           </View>
         ))}

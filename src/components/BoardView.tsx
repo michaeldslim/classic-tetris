@@ -5,6 +5,7 @@ import { getLineClearTier, isLineClearFlashBright } from '../game/lineClearFx';
 import type { ActivePiece, LineClearEffect } from '../game/types';
 import { type BoardCell } from '../game/types';
 import { theme } from '../theme/colors';
+import { useTetrominoPalette } from '../theme/useTetrominoPalette';
 import { Cell } from './Cell';
 
 type BoardViewProps = {
@@ -26,6 +27,7 @@ function BoardViewComponent({
   stageCleared = false,
   lockPulseKey = 0,
 }: BoardViewProps) {
+  const { id: paletteId } = useTetrominoPalette();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const prevStageCleared = useRef(false);
@@ -176,6 +178,7 @@ function BoardViewComponent({
                     key={key}
                     type={type}
                     size={cellSize}
+                    paletteId={paletteId}
                     ghost={ghostFlag}
                     flashing={isFlashing}
                     flashBright={isFlashing && flashBright}
