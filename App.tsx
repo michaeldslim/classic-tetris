@@ -64,7 +64,9 @@ function AppRoot() {
       : 'home'
     : overlay;
 
-  const gameActive = gameStarted && effectiveOverlay === null;
+  const phoneLandscapeBlock = getOrientationGuide(width, height) === 'portrait';
+  const gameActive =
+    gameStarted && effectiveOverlay === null && !phoneLandscapeBlock;
 
   useEffect(() => {
     setBgmPaused(
@@ -143,10 +145,6 @@ function AppRoot() {
     setForceResumeToken((token) => token + 1);
   }, []);
 
-  if (getOrientationGuide(width, height) === 'portrait') {
-    return <PhoneLandscapeWarning />;
-  }
-
   return (
     <>
       <View style={styles.root}>
@@ -208,6 +206,12 @@ function AppRoot() {
       </TabletLandscapeShell>
       </View>
 
+      {phoneLandscapeBlock ? (
+        <View style={styles.orientationBlocker} accessibilityViewIsModal>
+          <PhoneLandscapeWarning />
+        </View>
+      ) : null}
+
       {__DEV__ ? (
         <DevChairmanPreviewOverlay
           visible={devChairmanPreviewVisible}
@@ -249,6 +253,11 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFill,
     zIndex: 10,
+    backgroundColor: theme.background,
+  },
+  orientationBlocker: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 100,
     backgroundColor: theme.background,
   },
 });

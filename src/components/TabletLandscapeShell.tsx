@@ -7,22 +7,26 @@ type TabletLandscapeShellProps = {
   children: ReactNode;
 };
 
+/**
+ * Keeps a stable center wrapper so rotating tablet portrait ↔ landscape
+ * does not remount game UI children.
+ */
 export function TabletLandscapeShell({ children }: TabletLandscapeShellProps) {
   const { isWideLayout, sidePanelWidth } = useScreenLayout();
 
-  if (!isWideLayout) {
-    return children;
-  }
-
   return (
-    <View style={styles.root}>
-      <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
-        <LandscapeSideArt side="left" variant="minimal" />
-      </View>
+    <View style={[styles.root, isWideLayout && styles.rootRow]}>
+      {isWideLayout ? (
+        <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
+          <LandscapeSideArt side="left" variant="minimal" />
+        </View>
+      ) : null}
       <View style={styles.center}>{children}</View>
-      <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
-        <LandscapeSideArt side="right" variant="minimal" />
-      </View>
+      {isWideLayout ? (
+        <View style={[styles.sidePanel, { width: sidePanelWidth }]}>
+          <LandscapeSideArt side="right" variant="minimal" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -30,6 +34,8 @@ export function TabletLandscapeShell({ children }: TabletLandscapeShellProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  rootRow: {
     flexDirection: 'row',
   },
   sidePanel: {

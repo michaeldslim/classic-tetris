@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '../settings/SettingsContext';
 import { theme } from '../theme/colors';
 
-/** Full-screen replacement when phone is in landscape (portrait-only on mobile). */
+/** Overlay when phone is in landscape (game stays mounted; App pauses play). */
 export function PhoneLandscapeWarning() {
   const { translate } = useSettings();
 
