@@ -43,13 +43,14 @@ export type TetrominoPalette = {
   lineClearFlashColors: LineClearFlashColors;
 };
 
+/** Default in-app colors before multi-palette (incl. dark-ui J blue). */
 const GUIDELINE_PIECES: TetrominoColorMap = {
   I: { fill: '#00F0F0', border: '#00A0A0' },
   O: { fill: '#F0F000', border: '#A0A000' },
   T: { fill: '#A000F0', border: '#6000A0' },
   S: { fill: '#00F000', border: '#00A000' },
   Z: { fill: '#F00000', border: '#A00000' },
-  J: { fill: '#0000F0', border: '#0000A0' },
+  J: { fill: '#5088FF', border: '#2A58C8' },
   L: { fill: '#F0A000', border: '#A06000' },
 };
 
