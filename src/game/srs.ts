@@ -137,11 +137,7 @@ export function trySrsRotation(
   pieceY: number,
 ): { x: number; y: number; rotation: 0 | 1 | 2 | 3 } | null {
   if (type === 'O') {
-    return {
-      x: pieceX,
-      y: pieceY,
-      rotation: toRotation as 0 | 1 | 2 | 3,
-    };
+    return null;
   }
 
   const clockwise = (toRotation - fromRotation + 4) % 4 === 1;
