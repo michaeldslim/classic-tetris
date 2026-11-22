@@ -117,6 +117,10 @@ export function getRotatedShape(
   type: TetrominoType,
   rotation: number,
 ): number[][] {
+  if (type === 'O') {
+    return tetrominoShapes.O.map((row) => [...row]);
+  }
+
   let shape = tetrominoShapes[type].map((row) => [...row]);
   for (let i = 0; i < rotation % 4; i++) {
     shape = rotateShape(shape);
