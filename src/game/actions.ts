@@ -57,6 +57,10 @@ function tryRotate(state: GameState): GameState {
     return state;
   }
 
+  if (state.active.type === 'O') {
+    return state;
+  }
+
   const { type, x, y, rotation } = state.active;
   const nextRotation = ((rotation + 1) % 4) as ActivePiece['rotation'];
   const result = trySrsRotation(
