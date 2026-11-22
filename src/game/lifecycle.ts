@@ -53,6 +53,13 @@ export function reconcileGameState(state: GameState): GameState {
     });
   }
 
+  if (state.active?.type === 'O' && state.active.rotation !== 0) {
+    state = {
+      ...state,
+      active: { ...state.active, rotation: 0 },
+    };
+  }
+
   if (state.active && state.pendingSpawn) {
     return lockActivePiece({
       ...state,
